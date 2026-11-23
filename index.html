@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Save Board - Central de Controle Operacional | Filial 940</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.9);
+      --bg-glass: rgba(15, 23, 42, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(59, 130, 246, 0.45);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-glow: rgba(59, 130, 246, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg-dark);
+      background-image:
+        radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 50%),
+        radial-gradient(at 50% 30%, rgba(16, 185, 129, 0.04) 0px, transparent 60%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(96, 165, 250, 0.6);
+    }
+
+    /* Header Principal */
+    header {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 2px 7px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    /* Info e Ações Direitas */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #34d399;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .clock-display {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      letter-spacing: 0.5px;
+    }
+
+    /* Container Principal */
+    .container {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Título da Seção */
+    .section-header {
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .section-title h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .active-count-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--primary-light);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* Grid dos Módulos */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* Card Compacto do Módulo Ativo */
+    .module-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.4);
+      min-height: 180px;
+    }
+
+    .module-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--card-accent, var(--primary)), transparent);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .module-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.6), 0 0 20px var(--card-glow, var(--primary-glow));
+    }
+
+    .module-card:hover::before {
+      opacity: 1;
+    }
+
+    /* Card de Placeholder (Engrenagem no Centro, Sem Texto) */
+    .module-card.placeholder {
+      background: rgba(15, 23, 42, 0.3);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      cursor: default;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      padding: 0;
+    }
+
+    .module-card.placeholder::before {
+      display: none;
+    }
+
+    .module-card.placeholder:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    .placeholder-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      transition: color 0.25s ease, transform 0.25s ease;
+    }
+
+    .module-card.placeholder:hover .placeholder-icon {
+      color: var(--text-muted);
+      transform: rotate(30deg);
+    }
+
+    .card-header-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .card-icon-box {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--icon-bg, rgba(59, 130, 246, 0.15));
+      color: var(--icon-color, var(--primary-light));
+      border: 1px solid var(--icon-border, rgba(59, 130, 246, 0.25));
+      transition: transform 0.25s ease;
+    }
+
+    .module-card:not(.placeholder):hover .card-icon-box {
+      transform: scale(1.05);
+    }
+
+    .card-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-category {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--card-accent, var(--primary-light));
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .card-description {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: auto;
+      margin-bottom: 14px;
+    }
+
+    .tag {
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .card-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-open {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--card-accent, var(--primary-light));
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .module-card:not(.placeholder):hover .btn-open {
+      color: #ffffff;
+    }
+
+    .module-card:not(.placeholder):hover .btn-open svg {
+      transform: translateX(4px);
+    }
+
+    .btn-open svg {
+      transition: transform 0.2s ease;
+    }
+
+    /* Visualizador Overlay (Modal / Iframe Fullscreen) */
+    #viewerContainer {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-dark);
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      opacity: 0;
+      transition: opacity 0.25s ease-in-out;
+    }
+
+    #viewerContainer.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .viewer-header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .viewer-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .viewer-breadcrumbs span.active {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .viewer-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-tool {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-tool:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .btn-close {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #fff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-close:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: scale(1.02);
+    }
+
+    .iframe-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #0f172a;
+    }
+
+    #viewerFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+    }
+
+    .viewer-loader {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(59, 130, 246, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Rodapé */
+    footer {
+      background: rgba(15, 23, 42, 0.8);
+      border-top: 1px solid var(--border-color);
+      padding: 14px 28px;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .footer-content a {
+      color: var(--primary-light);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .footer-content a:hover {
+      color: #93c5fd;
+      text-decoration: underline;
+    }
+
+    /* Responsividade */
+    @media (max-width: 1024px) {
+      .modules-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 12px 16px;
+      }
+      .modules-grid {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        padding: 18px 16px;
+      }
+      .footer-content {
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER PRINCIPAL -->
+  <header>
+    <div class="header-content">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="#93c5fd" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="#60a5fa" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>SAVE BOARD <span class="brand-badge">FILIAL 940</span></h1>
+          <p>Central de Controle Operacional e Gestão de Inventário</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="system-status">
+          <span class="status-dot"></span>
+          Sistema Operacional
+        </div>
+        <div class="clock-display" id="liveClock">00:00:00</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTAINER PRINCIPAL -->
+  <div class="container">
+
+    <div class="section-header">
+      <div class="section-title">
+        <h2>Módulos Operacionais</h2>
+        <p>Selecione um módulo para acessar relatórios automatizados da Filial 940</p>
+      </div>
+      <span class="active-count-badge">4 Módulos Ativos</span>
+    </div>
+
+    <!-- GRID DOS MÓDULOS (4 ATIVOS + 4 PLACEHOLDERS) -->
+    <div class="modules-grid" id="modulesGrid">
+
+      <!-- 1. Dashboard Inventário -->
+      <div class="module-card"
+           style="--card-accent: #3b82f6; --card-glow: rgba(59, 130, 246, 0.25); --icon-bg: rgba(59, 130, 246, 0.15); --icon-color: #60a5fa; --icon-border: rgba(59, 130, 246, 0.3);"
+           onclick="openApp('AUTOMATIZADO/ACOMPANHAMENTO INVENTARIO.html', 'Dashboard Inventário', 'Inventário & Estoque')">
+
+        <div class="card-header-meta">
+          <div class="card-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <span class="card-badge">● Ativo</span>
+        </div>
+
+        <div class="card-body">
+          <span class="card-category">Inventário & Contagem</span>
+          <h2 class="card-title">Dashboard Inventário</h2>
+          <p class="card-description">
+            Progresso da contagem, balanço geral por grupos, divergências e conferência detalhada por usuário e endereço.
+          </p>
+          <div class="card-tags">
+            <span class="tag">Contagem Física</span>
+            <span class="tag">Divergências</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="btn-open">
+            Abrir Módulo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- 2. Automático Negativo -->
+      <div class="module-card"
+           style="--card-accent: #ef4444; --card-glow: rgba(239, 68, 68, 0.25); --icon-bg: rgba(239, 68, 68, 0.15); --icon-color: #f87171; --icon-border: rgba(239, 68, 68, 0.3);"
+           onclick="openApp('AUTOMATIZADO/AUTOMATICONEGATIVO.html', 'Automático Negativo', 'Estoque & Conciliação')">
+
+        <div class="card-header-meta">
+          <div class="card-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              <circle cx="18" cy="18" r="3.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"></circle>
+              <line x1="16" y1="18" x2="20" y2="18" stroke="#ffffff" stroke-width="2"></line>
+            </svg>
+          </div>
+          <span class="card-badge">● Ativo</span>
+        </div>
+
+        <div class="card-body">
+          <span class="card-category">Estoque & Conciliação</span>
+          <h2 class="card-title">Automático Negativo</h2>
+          <p class="card-description">
+            Cruzamento automatizado da bíblia (SMGOI013) com o acompanhamento (SASOI086) para zerar os negativos.
+          </p>
+          <div class="card-tags">
+            <span class="tag">SMGOI013</span>
+            <span class="tag">SASOI086</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="btn-open">
+            Abrir Módulo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- 3. Dashboard Avarias -->
+      <div class="module-card"
+           style="--card-accent: #f59e0b; --card-glow: rgba(245, 158, 11, 0.25); --icon-bg: rgba(245, 158, 11, 0.15); --icon-color: #fbbf24; --icon-border: rgba(245, 158, 11, 0.3);"
+           onclick="openApp('AUTOMATIZADO/AVARIAS.html', 'Painel de Avarias', 'Prevenção de Perdas')">
+
+        <div class="card-header-meta">
+          <div class="card-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <span class="card-badge">● Ativo</span>
+        </div>
+
+        <div class="card-body">
+          <span class="card-category">Prevenção de Perdas</span>
+          <h2 class="card-title">Dashboard Avarias</h2>
+          <p class="card-description">
+            Gestão de quebras e avarias da Filial 940, acompanhamento de metas por setor e ranking de perdas.
+          </p>
+          <div class="card-tags">
+            <span class="tag">Controle de Quebras</span>
+            <span class="tag">Metas Setoriais</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="btn-open">
+            Abrir Módulo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Vendas Sem Estoque -->
+      <div class="module-card"
+           style="--card-accent: #10b981; --card-glow: rgba(16, 185, 129, 0.25); --icon-bg: rgba(16, 185, 129, 0.15); --icon-color: #34d399; --icon-border: rgba(16, 185, 129, 0.3);"
+           onclick="openApp('AUTOMATIZADO/VENDAS SEM ESTOQUE.html', 'Vendas Sem Estoque', 'Auditoria & Vendas')">
+
+        <div class="card-header-meta">
+          <div class="card-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+              <path d="m3.3 7 8.7 5 8.7-5"/>
+              <path d="M12 22V12"/>
+            </svg>
+          </div>
+          <span class="card-badge">● Ativo</span>
+        </div>
+
+        <div class="card-body">
+          <span class="card-category">Auditoria & Vendas</span>
+          <h2 class="card-title">Vendas Sem Estoque</h2>
+          <p class="card-description">
+            Acompanhamento de saldos positivos integrando relatórios de faturamento com o estoque físico.
+          </p>
+          <div class="card-tags">
+            <span class="tag">Faturamento</span>
+            <span class="tag">Estoque Físico</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="btn-open">
+            Abrir Módulo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- 5. Placeholder 1 -->
+      <div class="module-card placeholder">
+        <div class="placeholder-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 6. Placeholder 2 -->
+      <div class="module-card placeholder">
+        <div class="placeholder-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 7. Placeholder 3 -->
+      <div class="module-card placeholder">
+        <div class="placeholder-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 8. Placeholder 4 -->
+      <div class="module-card placeholder">
+        <div class="placeholder-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <footer>
+    <div class="footer-content">
+      <div>
+        <strong>SAVE BOARD</strong> • Filial 940 • Gestão e Operação
+      </div>
+      <div>
+        Desenvolvido por <strong>COL DEV</strong> | Contato: <a href="mailto:ciceroolira@gmail.com">ciceroolira@gmail.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- VISUALIZADOR DE TELA SOBREPOSTO (MODAL / IFRAME FULLSCREEN) -->
+  <div id="viewerContainer">
+    <div class="viewer-header">
+      <div class="viewer-breadcrumbs">
+        <span>Save Board</span>
+        <span>/</span>
+        <span id="viewerBreadcrumbCat">Módulo</span>
+        <span>/</span>
+        <span class="active" id="viewerBreadcrumbTitle">Dashboard</span>
+      </div>
+
+      <div class="viewer-actions">
+        <button class="btn-tool" onclick="reloadViewer()" title="Recarregar Tela">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Atualizar
+        </button>
+
+        <button class="btn-tool" onclick="openInNewTab()" title="Abrir em Nova Aba">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          Nova Aba
+        </button>
+
+        <button class="btn-close" onclick="closeApp()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Voltar ao Menu
+        </button>
+      </div>
+    </div>
+
+    <div class="iframe-wrapper">
+      <div class="viewer-loader" id="viewerLoader">
+        <div class="spinner"></div>
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Carregando Módulo Operacional...</span>
+      </div>
+      <iframe id="viewerFrame" src="" onload="hideLoader()"></iframe>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT DA PÁGINA -->
+  <script>
+    let currentModuleUrl = '';
+
+    // Relógio Digital no Header
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('liveClock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Abrir Módulo no Viewer
+    function openApp(fileName, title, category) {
+      currentModuleUrl = fileName;
+      document.getElementById('viewerBreadcrumbCat').textContent = category || 'Módulo';
+      document.getElementById('viewerBreadcrumbTitle').textContent = title;
+
+      const loader = document.getElementById('viewerLoader');
+      loader.style.display = 'flex';
+      loader.style.opacity = '1';
+
+      const iframe = document.getElementById('viewerFrame');
+      iframe.src = fileName;
+
+      const container = document.getElementById('viewerContainer');
+      container.style.display = 'flex';
+      void container.offsetWidth; // Force reflow
+      container.classList.add('active');
+    }
+
+    // Esconder loader do iframe
+    function hideLoader() {
+      const loader = document.getElementById('viewerLoader');
+      loader.style.opacity = '0';
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 300);
+    }
+
+    // Recarregar iframe
+    function reloadViewer() {
+      const iframe = document.getElementById('viewerFrame');
+      if (iframe.src) {
+        document.getElementById('viewerLoader').style.display = 'flex';
+        document.getElementById('viewerLoader').style.opacity = '1';
+        iframe.src = iframe.src;
+      }
+    }
+
+    // Abrir em nova aba
+    function openInNewTab() {
+      if (currentModuleUrl) {
+        window.open(currentModuleUrl, '_blank');
+      }
+    }
+
+    // Fechar Viewer
+    function closeApp() {
+      const container = document.getElementById('viewerContainer');
+      container.classList.remove('active');
+      setTimeout(() => {
+        container.style.display = 'none';
+        document.getElementById('viewerFrame').src = '';
+        currentModuleUrl = '';
+      }, 250);
+    }
+
+    // Tecla ESC fecha a overlay
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeApp();
+      }
+    });
+  </script>
+</body>
+</html>

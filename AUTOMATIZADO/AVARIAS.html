@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Interativo de Avarias - Filial 940</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #16a34a;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 24px; }
+        .container { max-width: 1440px; margin: 0 auto; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card); padding: 20px 28px; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+        }
+        header h1 { font-size: 1.5rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+
+        .sector-pill {
+            background: #dbeafe;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 999px;
+            border: 1px solid #93c5fd;
+        }
+
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1e40af; }
+        .btn-pdf { background: #dc2626; color: white; }
+        .btn-pdf:hover { background: #b91c1c; }
+        .btn-back { background: #0f172a; color: white; }
+        .btn-back:hover { background: #334155; }
+
+        .filter-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-left: 4px solid var(--primary);
+            padding: 12px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .filter-banner span {
+            color: var(--primary);
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--primary-light); background: #eff6ff;
+            border-radius: 12px; padding: 48px 24px; text-align: center;
+            cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px;
+        }
+        .upload-zone:hover, .upload-zone.dragover { background: #dbeafe; border-color: var(--primary); }
+        .upload-zone h2 { color: var(--primary); font-size: 1.25rem; margin-bottom: 8px; }
+        .upload-zone p { color: var(--text-muted); font-size: 0.95rem; }
+        #fileInput { display: none; }
+
+        #dashboard { animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .kpi-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--card); padding: 20px; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid var(--primary);
+        }
+        .kpi-card.total { border-left-color: var(--danger); background: #fef2f2; }
+        .kpi-card.clickable-kpi {
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .kpi-card.clickable-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(30, 58, 138, 0.12);
+            border-color: #93c5fd;
+        }
+        .kpi-hint {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+        .kpi-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; margin-top: 8px; color: var(--text); }
+        .kpi-card.total .kpi-value { color: var(--danger); }
+
+        .main-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .top15-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 0; }
+        @media (max-width: 1180px) {
+            .main-grid, .top15-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card); padding: 24px; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap; gap: 8px;
+        }
+        .card-title { font-size: 1.05rem; font-weight: 700; color: var(--primary); }
+        .card-subtitle { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+        .chart-box { height: 320px; position: relative; width: 100%; }
+        #printChartImg { display: none; width: 100%; height: 100%; object-fit: contain; }
+
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        th {
+            background: #f8fafc; text-align: left; padding: 10px 7px;
+            font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+        td { padding: 9px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        tr:hover td { background: #f8fafc; }
+
+        #sectorTable tbody tr.sector-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #sectorTable tbody tr.sector-row:hover td {
+            background: #eff6ff;
+        }
+        #sectorTable tbody tr.sector-row.active-sector td {
+            background: #dbeafe;
+            border-top: 1.5px solid #93c5fd;
+            border-bottom: 1.5px solid #93c5fd;
+        }
+        #sectorTable tbody tr.sector-row.dimmed-sector td {
+            opacity: 0.55;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .val-neg { color: var(--danger); font-weight: 600; white-space: nowrap; }
+        .val-ok { color: var(--success); font-weight: 600; white-space: nowrap; }
+
+        .btn-remove-item {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 1px 5px;
+            margin-left: 6px;
+            border-radius: 4px;
+            line-height: 1;
+            transition: all 0.15s ease;
+            vertical-align: middle;
+        }
+        tr:hover .btn-remove-item {
+            color: #64748b;
+        }
+        .btn-remove-item:hover {
+            background: #fee2e2;
+            color: #dc2626 !important;
+        }
+
+        .badge {
+            padding: 3px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; display: inline-block;
+        }
+        .badge-ok { background: #dcfce7; color: #166534; }
+        .badge-warn { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+
+        .status-pill {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            display: inline-block;
+        }
+        .status-in {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .status-out {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .progress-bg { background: #e2e8f0; height: 7px; border-radius: 4px; width: 100%; overflow: hidden; margin-top: 5px; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+        /* Tela / Modal de Avarias + Filtro Lateral por Setor */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .modal-shell {
+            width: 100%;
+            max-width: 1420px;
+            height: 92vh;
+            background: var(--bg);
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .modal-topbar {
+            background: var(--card);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .modal-topbar h2 {
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .modal-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 290px 1fr;
+            min-height: 0;
+            overflow: hidden;
+        }
+        @media (max-width: 900px) {
+            .modal-body {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+            .modal-sidebar {
+                max-height: 230px;
+                border-right: none !important;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+        .modal-sidebar {
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 16px 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .sidebar-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 8px 8px;
+            letter-spacing: 0.4px;
+        }
+        .sector-filter-btn {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+        .sector-filter-btn:hover {
+            background: #eff6ff;
+            border-color: #93c5fd;
+        }
+        .sector-filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+        .sector-filter-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: block;
+        }
+        .sector-filter-count {
+            font-size: 0.72rem;
+            opacity: 0.8;
+            display: block;
+            margin-top: 2px;
+        }
+        .sector-filter-val {
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .modal-content-pane {
+            padding: 18px 22px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+        .modal-summary-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+        }
+        .mini-stat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
+        .mini-stat span {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .mini-stat strong {
+            display: block;
+            font-size: 1.25rem;
+            margin-top: 4px;
+            color: var(--text);
+        }
+        .modal-toolbar {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .modal-input, .modal-select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            background: #ffffff;
+            color: var(--text);
+        }
+        .modal-input {
+            min-width: 240px;
+            flex: 1;
+            max-width: 420px;
+        }
+        .modal-table-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            flex: 1;
+            min-height: 260px;
+            overflow: auto;
+        }
+
+        /* =========================================================
+           IMPRESSÃO PDF: EXATAMENTE O VISUAL DA TELA INICIAL EM 1 FOLHA
+           ========================================================= */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 5mm;
+            }
+            html, body {
+                width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                background: #f1f5f9 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 6px !important;
+                overflow: hidden !important;
+            }
+            .header-actions, .upload-zone, .btn-remove-item, .filter-banner, .modal-overlay, .kpi-hint {
+                display: none !important;
+            }
+
+            header {
+                flex: 0 0 auto !important;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 8px !important;
+                padding: 6px 12px !important;
+                margin: 0 !important;
+                background: #ffffff !important;
+            }
+            header h1 { font-size: 14px !important; }
+            header p { font-size: 8.5px !important; margin-top: 2px !important; }
+            .sector-pill { font-size: 8px !important; padding: 2px 7px !important; }
+
+            #dashboard {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                gap: 6px !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .kpi-grid {
+                flex: 0 0 auto !important;
+                display: grid !important;
+                grid-template-columns: repeat(5, 1fr) !important;
+                gap: 6px !important;
+                margin: 0 !important;
+            }
+            .kpi-card {
+                padding: 7px 9px !important;
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                border-left-width: 3.5px !important;
+                background: #ffffff !important;
+            }
+            .kpi-card.total {
+                background: #fef2f2 !important;
+                border-left-color: #dc2626 !important;
+            }
+            .kpi-title { font-size: 7.2px !important; line-height: 1.15; }
+            .kpi-value { font-size: 12.5px !important; margin-top: 3px !important; }
+
+            .main-grid {
+                flex: 0 0 auto !important;
+                display: grid !important;
+                grid-template-columns: 1.65fr 1fr !important;
+                gap: 6px !important;
+                margin: 0 !important;
+                align-items: stretch !important;
+            }
+
+            .top15-grid {
+                flex: 1 1 auto !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 6px !important;
+                margin: 0 !important;
+                min-height: 0 !important;
+                align-items: stretch !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 8px !important;
+                padding: 7px 8px !important;
+                background: #ffffff !important;
+                overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
+            }
+            .card-header {
+                flex: 0 0 auto !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 4px !important;
+            }
+            .card-title { font-size: 9.5px !important; }
+            .card-subtitle { font-size: 7.2px !important; }
+
+            .chart-box {
+                flex: 1 1 auto !important;
+                height: 158px !important;
+                max-height: 158px !important;
+                overflow: hidden !important;
+            }
+            #sectorChart {
+                display: none !important;
+            }
+            #printChartImg {
+                display: block !important;
+                width: 100% !important;
+                height: 158px !important;
+                object-fit: contain !important;
+            }
+
+            .table-wrapper {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+
+            table {
+                font-size: 6.8px !important;
+                line-height: 1.15 !important;
+                width: 100% !important;
+                height: 100% !important;
+                table-layout: fixed !important;
+            }
+            th {
+                padding: 3px 2px !important;
+                font-size: 6.5px !important;
+            }
+            td {
+                padding: 2.5px 2px !important;
+            }
+
+            #topMonthTable tbody,
+            #topYesterdayTable tbody {
+                height: 100% !important;
+            }
+            #topMonthTable td,
+            #topYesterdayTable td {
+                padding-top: 2.8px !important;
+                padding-bottom: 2.8px !important;
+            }
+
+            #sectorTable th:nth-child(1), #sectorTable td:nth-child(1) { width: 15%; }
+            #sectorTable th:nth-child(2), #sectorTable td:nth-child(2) { width: 12%; }
+            #sectorTable th:nth-child(3), #sectorTable td:nth-child(3) { width: 12%; }
+            #sectorTable th:nth-child(4), #sectorTable td:nth-child(4) { width: 14%; }
+            #sectorTable th:nth-child(5), #sectorTable td:nth-child(5) { width: 14%; }
+            #sectorTable th:nth-child(6), #sectorTable td:nth-child(6) { width: 12%; }
+            #sectorTable th:nth-child(7), #sectorTable td:nth-child(7) { width: 21%; }
+
+            #topMonthTable th:nth-child(1), #topMonthTable td:nth-child(1),
+            #topYesterdayTable th:nth-child(1), #topYesterdayTable td:nth-child(1) { width: 7%; }
+
+            #topMonthTable th:nth-child(2), #topMonthTable td:nth-child(2),
+            #topYesterdayTable th:nth-child(2), #topYesterdayTable td:nth-child(2) { width: 16%; }
+
+            #topMonthTable th:nth-child(3), #topMonthTable td:nth-child(3),
+            #topYesterdayTable th:nth-child(3), #topYesterdayTable td:nth-child(3) {
+                width: 41%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            #topMonthTable th:nth-child(4), #topMonthTable td:nth-child(4),
+            #topYesterdayTable th:nth-child(4), #topYesterdayTable td:nth-child(4) {
+                width: 17%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            #topMonthTable th:nth-child(5), #topMonthTable td:nth-child(5),
+            #topYesterdayTable th:nth-child(5), #topYesterdayTable td:nth-child(5) { width: 19%; }
+
+            .badge {
+                padding: 1px 3px !important;
+                font-size: 6.2px !important;
+            }
+            .status-pill {
+                padding: 1.5px 3px !important;
+                font-size: 5.2px !important;
+                letter-spacing: 0 !important;
+            }
+            .progress-bg {
+                height: 3.5px !important;
+                margin-top: 2px !important;
+            }
+            code {
+                font-size: 7px !important;
+            }
+        }
+
+        /* =========================================================
+           IMPRESSÃO DIRETA DO MODAL DETALHADO EM PDF
+           ========================================================= */
+        @media print {
+            body.printing-modal {
+                width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.printing-modal .container,
+            body.printing-modal #dashboard,
+            body.printing-modal #uploadZone,
+            body.printing-modal header {
+                display: none !important;
+            }
+            body.printing-modal #allAvariasModal {
+                display: block !important;
+                position: static !important;
+                inset: auto !important;
+                background: #ffffff !important;
+                backdrop-filter: none !important;
+                padding: 0 !important;
+                z-index: auto !important;
+            }
+            body.printing-modal .modal-shell {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+            }
+            body.printing-modal .modal-topbar button,
+            body.printing-modal .modal-toolbar input,
+            body.printing-modal .modal-toolbar select,
+            body.printing-modal .modal-sidebar {
+                display: none !important;
+            }
+            body.printing-modal .modal-topbar {
+                padding: 8px 0 10px !important;
+                border-bottom: 2px solid #1e3a8a !important;
+            }
+            body.printing-modal .modal-topbar h2 {
+                font-size: 15px !important;
+            }
+            body.printing-modal .modal-body {
+                display: block !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+            body.printing-modal .modal-content-pane {
+                padding: 10px 0 0 !important;
+                overflow: visible !important;
+                height: auto !important;
+                gap: 10px !important;
+            }
+            body.printing-modal .modal-summary-strip {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+            }
+            body.printing-modal .mini-stat {
+                padding: 8px 12px !important;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            body.printing-modal .mini-stat strong {
+                font-size: 13px !important;
+            }
+            body.printing-modal .modal-toolbar {
+                padding: 6px 10px !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            body.printing-modal .modal-table-card {
+                padding: 8px !important;
+                border: 1px solid #cbd5e1 !important;
+                overflow: visible !important;
+                min-height: 0 !important;
+            }
+            body.printing-modal .table-wrapper {
+                overflow: visible !important;
+                display: block !important;
+            }
+            body.printing-modal table {
+                width: 100% !important;
+                height: auto !important;
+                table-layout: auto !important;
+                font-size: 8.5px !important;
+                line-height: 1.25 !important;
+            }
+            body.printing-modal th {
+                padding: 5px 6px !important;
+                font-size: 8px !important;
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+            }
+            body.printing-modal td {
+                padding: 4px 6px !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+            }
+            body.printing-modal tr {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>
+                📊 Painel Interativo de Avarias
+                <span id="headerSectorBadge" class="sector-pill hidden"></span>
+            </h1>
+            <p id="reportSubtitle">Faça o upload da planilha SAEOI051 (.xlsx) para gerar a visão gerencial</p>
+        </div>
+        <div class="header-actions hidden" id="headerActions">
+            <button class="btn btn-back hidden" id="btnBackAll" onclick="clearSectorFilter()">↩️ Voltar para Visão Geral</button>
+            <button class="btn btn-pdf" onclick="printPDF()">🖨️ Imprimir PDF (1 Folha)</button>
+            <button class="btn btn-primary" onclick="resetUpload()">📂 Carregar Outro Arquivo</button>
+        </div>
+    </header>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <h2>📂 Arraste e solte o arquivo Excel aqui</h2>
+        <p>Ou clique para selecionar o arquivo (ex: <strong>SAEOI051.xlsx</strong>)</p>
+        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
+    </div>
+
+    <div id="dashboard" class="hidden">
+        <!-- BARRA DE AVISO DO FILTRO ATIVO -->
+        <div id="sectorFilterBanner" class="filter-banner hidden">
+            <span id="sectorFilterText">📌 Exibindo dados exclusivos do setor: PADARIA</span>
+            <button class="btn btn-back" style="padding: 6px 14px; font-size: 0.82rem;" onclick="clearSectorFilter()">↩️ Voltar para Todos os Setores</button>
+        </div>
+
+        <!-- 1. CARDS DE CATEGORIA -->
+        <div class="kpi-grid" id="kpiContainer"></div>
+
+        <!-- 2. SETORES + GRÁFICO COMPARATIVO -->
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Avaria por Setor vs. Meta</span>
+                    <span class="card-subtitle" id="sectorDaysSubtitle">Clique em um setor para filtrar</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="sectorTable">
+                        <thead>
+                            <tr>
+                                <th>Setor</th>
+                                <th class="text-right">Realizado Dia</th>
+                                <th class="text-right">Meta/Dia</th>
+                                <th class="text-right">Realizado Mês</th>
+                                <th class="text-right">Meta/Mês</th>
+                                <th>% Meta</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" id="chartCardTitle">Comparativo Visual por Setor</span>
+                    <span class="card-subtitle" id="chartCardSubtitle">Clique nas barras para filtrar</span>
+                </div>
+                <div class="chart-box">
+                    <canvas id="sectorChart"></canvas>
+                    <img id="printChartImg" alt="Gráfico Comparativo por Setor">
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. TOP 15 FILIAL 940 + TOP 15 ONTEM -->
+        <div class="top15-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" id="topMonthTitle">🏆 15 Maiores Perdas da Filial 940</span>
+                    <span class="card-subtitle" id="periodRangeLabel">Soma de Todo o Período</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="topMonthTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Cód.</th>
+                                <th>Descrição</th>
+                                <th>Emb.</th>
+                                <th class="text-right">Vlr. Total</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" id="topYesterdayTitle">📅 15 Maiores Perdas de Ontem</span>
+                    <span class="card-subtitle" id="yesterdayDateLabel">Dia Anterior</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="topYesterdayTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Cód.</th>
+                                <th>Descrição</th>
+                                <th>Emb.</th>
+                                <th class="text-right">Vlr. Total</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TELA DETALHADA: AVARIAS POR CATEGORIA + FILTRO LATERAL POR SETOR -->
+<div id="allAvariasModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalAvariasTitle">
+    <div class="modal-shell">
+        <div class="modal-topbar">
+            <div>
+                <h2 id="modalAvariasTitle">📋 Todas as Avarias por Setor</h2>
+                <p id="modalAvariasSubtitle" style="font-size:0.84rem; color:var(--text-muted); margin-top:2px;"></p>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-pdf" onclick="printModalAvarias()">🖨️ Imprimir Tela</button>
+                <button type="button" class="btn btn-primary" onclick="clearModalFilters()">🔄 Limpar Filtros</button>
+                <button type="button" class="btn btn-back" onclick="closeAllAvariasModal()">✖ Fechar Tela</button>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <!-- LATERAL ESQUERDA: SETORES -->
+            <aside class="modal-sidebar">
+                <div class="sidebar-heading">Filtrar por Setor</div>
+                <div id="modalSectorList" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </aside>
+
+            <!-- ÁREA DIREITA: RESUMO + BUSCA + TABELA COMPLETA -->
+            <section class="modal-content-pane">
+                <div class="modal-summary-strip">
+                    <div class="mini-stat">
+                        <span>Total Filtrado</span>
+                        <strong id="modalTotalValor" class="val-neg">R$ 0,00</strong>
+                    </div>
+                    <div class="mini-stat">
+                        <span>Quantidade de Lançamentos</span>
+                        <strong id="modalTotalQtd">0</strong>
+                    </div>
+                    <div class="mini-stat">
+                        <span>Setor Selecionado</span>
+                        <strong id="modalSetorAtual" style="color:var(--primary); font-size:1.05rem;">TODOS OS SETORES</strong>
+                    </div>
+                </div>
+
+                <div class="modal-toolbar">
+                    <div class="modal-controls">
+                        <input
+                            type="text"
+                            id="modalSearchInput"
+                            class="modal-input"
+                            placeholder="Buscar por código, descrição ou embalagem..."
+                            oninput="renderModalAvarias()"
+                        >
+                        <select id="modalCategorySelect" class="modal-select" onchange="renderModalAvarias()">
+                            <option value="AVARIA">Categoria: AVARIA</option>
+                            <option value="AVARIA P/VENCIMENTO">Categoria: AVARIA P/ VENCIMENTO</option>
+                            <option value="AVARIA P/RESSARCIMENTO">Categoria: AVARIA P/ RESSARCIMENTO</option>
+                            <option value="AVARIA P/ DEGUSTAÇÃO">Categoria: AVARIA P/ DEGUSTAÇÃO</option>
+                            <option value="TODAS">Categoria: TODAS AS AVARIAS</option>
+                        </select>
+                    </div>
+                    <span id="modalResultInfo" style="font-size:0.82rem; color:var(--text-muted); font-weight:600;"></span>
+                </div>
+
+                <div class="modal-table-card">
+                    <div class="table-wrapper">
+                        <table id="modalAvariasTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Data</th>
+                                    <th>Setor</th>
+                                    <th>Cód.</th>
+                                    <th>Descrição</th>
+                                    <th>Emb.</th>
+                                    <th>Categoria</th>
+                                    <th class="text-right">Vlr. Total</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+    const METAS_SETORES = {
+        'PADARIA': { dia: 550.00, mes: 16500.00 },
+        'AÇOUGUE': { dia: 550.00, mes: 16500.00 },
+        'FATIADOS': { dia: 350.00, mes: 10500.00 },
+        'HORT-FRUTTI': { dia: 1200.00, mes: 36000.00 },
+        'LOJA': { dia: 1000.00, mes: 30000.00 },
+        'CAFETERIA': { dia: 30.00, mes: 900.00 },
+        'FRIOS': { dia: 1000.00, mes: 30000.00 }
+    };
+
+    const MESES_PT = [
+        'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+        'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+    ];
+
+    let allValidRecords = [];
+    let excludedMonthKeys = new Set();
+    let excludedYesterdayKeys = new Set();
+    let selectedSector = null;
+    let modalSelectedSector = 'TODOS';
+    let modalInitialCategory = 'AVARIA';
+    let currentYesterdayObj = null;
+    let currentDayOfMonth = new Date().getDate();
+    let chartInstance = null;
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function syncChartSnapshot() {
+        if (chartInstance) {
+            const img = document.getElementById('printChartImg');
+            img.src = chartInstance.toBase64Image();
+        }
+    }
+
+    function printPDF() {
+        document.body.classList.remove('printing-modal');
+        syncChartSnapshot();
+        if (typeof window.focus === 'function') {
+            window.focus();
+        }
+        requestAnimationFrame(() => {
+            try {
+                window.print();
+            } catch (err) {
+                alert('Não foi possível abrir a janela de impressão: ' + (err && err.message ? err.message : err));
+            }
+        });
+    }
+
+    function printModalAvarias() {
+        const modal = document.getElementById('allAvariasModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            document.body.classList.add('printing-modal');
+            if (typeof window.focus === 'function') {
+                window.focus();
+            }
+            requestAnimationFrame(() => {
+                try {
+                    window.print();
+                } catch (err) {
+                    document.body.classList.remove('printing-modal');
+                    alert('Não foi possível abrir a janela de impressão: ' + (err && err.message ? err.message : err));
+                }
+            });
+        } else {
+            printPDF();
+        }
+    }
+
+    window.addEventListener('afterprint', () => {
+        document.body.classList.remove('printing-modal');
+    });
+
+    window.addEventListener('beforeprint', () => {
+        if (!document.body.classList.contains('printing-modal')) {
+            syncChartSnapshot();
+        }
+    });
+
+    function resetUpload() {
+        selectedSector = null;
+        modalSelectedSector = 'TODOS';
+        excludedMonthKeys.clear();
+        excludedYesterdayKeys.clear();
+        closeAllAvariasModal();
+        document.getElementById('dashboard').classList.add('hidden');
+        uploadZone.classList.remove('hidden');
+        document.getElementById('headerActions').classList.add('hidden');
+        fileInput.value = '';
+    }
+
+    function formatBRL(val) {
+        return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function parseNumber(val) {
+        if (typeof val === 'number') return val;
+        if (!val) return 0;
+        let str = String(val).trim().replace(/[R$\s]/g, '');
+        if (str.includes(',') && str.includes('.')) {
+            str = str.replace(/\./g, '').replace(',', '.');
+        } else if (str.includes(',')) {
+            str = str.replace(',', '.');
+        }
+        return parseFloat(str) || 0;
+    }
+
+    function parseExcelDate(val) {
+        if (!val) return null;
+        if (val instanceof Date && !isNaN(val)) {
+            const y = val.getUTCFullYear();
+            const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(val.getUTCDate()).padStart(2, '0');
+            return { key: `${y}-${m}-${d}`, label: `${d}/${m}/${y}`, day: d, month: m, year: y };
+        }
+        if (typeof val === 'number' && val > 20000) {
+            const utcDays = Math.floor(val - 25569);
+            const dateObj = new Date(utcDays * 86400 * 1000);
+            const y = dateObj.getUTCFullYear();
+            const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getUTCDate()).padStart(2, '0');
+            return { key: `${y}-${m}-${d}`, label: `${d}/${m}/${y}`, day: d, month: m, year: y };
+        }
+        const s = String(val).trim();
+        const matchBR = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (matchBR) {
+            const d = matchBR[1].padStart(2, '0');
+            const m = matchBR[2].padStart(2, '0');
+            const y = matchBR[3].length === 2 ? '20' + matchBR[3] : matchBR[3];
+            return { key: `${y}-${m}-${d}`, label: `${d}/${m}/${y}`, day: d, month: m, year: y };
+        }
+        return null;
+    }
+
+    function getYesterdayDateObj() {
+        const now = new Date();
+        const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const y = yest.getFullYear();
+        const m = String(yest.getMonth() + 1).padStart(2, '0');
+        const d = String(yest.getDate()).padStart(2, '0');
+        return { key: `${y}-${m}-${d}`, label: `${d}/${m}/${y}`, day: d, month: m, year: String(y) };
+    }
+
+    function normalizeProductKey(cod, desc) {
+        const cleanCod = String(cod || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (cleanCod) return cleanCod;
+        return String(desc || '').trim().toUpperCase();
+    }
+
+    function detectSector(desc) {
+        const d = String(desc || '').trim().toUpperCase();
+
+        // 1. Tudo que começa com HF. é HORT-FRUTTI
+        if (d.startsWith('HF.')) return 'HORT-FRUTTI';
+
+        // 2. Tudo que começa com FR. é FATIADOS
+        if (d.startsWith('FR.')) return 'FATIADOS';
+
+        // 3. Outros prefixos diretos
+        if (d.startsWith('PA.')) return 'PADARIA';
+        if (d.startsWith('CF.')) return 'CAFETERIA';
+        if (d.startsWith('AC.')) return 'AÇOUGUE';
+
+        // 4. Biscoitos, snacks, chips e salgadinhos embalados pertencem à LOJA
+        const isSnackOuLoja =
+            d.startsWith('BISC.') || d.includes('BISC.') ||
+            d.includes('RUFFLES') || d.includes('PRINGLES') || d.includes('DORITOS') ||
+            d.includes('STIKSY') || d.includes('CHEETOS') || d.includes('FANDANGOS') ||
+            d.includes('ELMA CHIPS') || d.includes('BATATA CHIPS') || d.includes('CHIPS') ||
+            d.includes('TIRA TEIMA') || d.includes('EBICEN') || d.includes('LOBITS') ||
+            d.includes('AMAVITA') || d.includes('TAKIS') || d.includes('POLVILHO') ||
+            d.includes('SALGADINHO') || d.includes('CASTANHA') || d.includes('AMENDOIM') ||
+            d.includes('TORRADA') || d.includes('BISCOITO') || d.includes('BOLACHA');
+
+        if (isSnackOuLoja) return 'LOJA';
+
+        // 5. Carnes, peixes, orelha, costela salgadas e similares -> FATIADOS
+        const isCarneOuPeixeSalgado =
+            d.includes('CARNE SALG') || d.includes('CARNES SALG') ||
+            d.includes('PEIXE SALG') || d.includes('PEIXES SALG') ||
+            d.includes('ORELHA SALG') || d.includes('ORELHAS SALG') ||
+            d.includes('COSTELA SALG') || d.includes('COSTELAS SALG') ||
+            d.includes('PE SUINO SALG') || d.includes('PE DE PORCO SALG') ||
+            d.includes('RABO SALG') || d.includes('CHARQUE') ||
+            d.includes('CARNE SECA') || d.includes('JABÁ') ||
+            d.includes('JABA') || d.includes('BACALHAU') ||
+            d.includes('PIRARUCU SALG');
+
+        if (isCarneOuPeixeSalgado) {
+            return 'FATIADOS';
+        }
+
+        // 6. Demais produtos começando com RF.
+        if (d.startsWith('RF.')) {
+            const isFriosOuIndustrializado =
+                d.includes('HAMBURGUER') || d.includes('HAMBÚRGUER') ||
+                d.includes('KIBE') || d.includes('QUIBE') ||
+                d.includes('SALSICHA') || d.includes('LINGUICA') || d.includes('LINGUIÇA') ||
+                d.includes('MORTADELA') || d.includes('PRESUNTO') || d.includes('APRESUNTADO') ||
+                d.includes('BACON') || d.includes('EMBUTIDO') || d.includes('SALAME') ||
+                d.includes('PEITO DE PERU') || d.includes('BLANQUET') ||
+                d.includes('NUGGETS') || d.includes('EMPANADO') || d.includes('STEAK') ||
+                d.includes('LASANHA') || d.includes('PIZZA') || d.includes('TORTA') ||
+                d.includes('LANCHE') || d.includes('HOT HIT') ||
+                d.includes('DEFUMADO') ||
+                d.includes('TEMP.') || d.includes('TEMPERAD') || d.includes('TEMP ') ||
+                d.includes('CONG.') || d.includes('CONGELAD') || d.includes('CONG ') ||
+                d.includes('PANCETA') || d.includes('PRIETO') ||
+                d.includes('IOG') || d.includes('QUEIJO') || d.includes('REQUEIJ') ||
+                d.includes('LEITE') || d.includes('MANTEIGA') || d.includes('MARGARINA') ||
+                d.includes('CREAM CHEESE') || d.includes('CATUPIRY') || d.includes('COALHO');
+
+            if (isFriosOuIndustrializado) return 'FRIOS';
+
+            const isCorteAcougue =
+                d.includes('BOV') || d.includes('SUIN') || d.includes('CARNE') ||
+                d.includes('FRANGO') || d.includes('AVE') || d.includes('FILE') ||
+                d.includes('FILÉ') || d.includes('PICANHA') || d.includes('ALCATRA') ||
+                d.includes('COSTELA') || d.includes('LOMBO') || d.includes('PERNIL') ||
+                d.includes('COXA') || d.includes('PEITO') || d.includes('MAMINHA') ||
+                d.includes('CONTRA') || d.includes('ACEM') || d.includes('ACÉM') ||
+                d.includes('PALETA') || d.includes('PATINHO') || d.includes('COXAO') ||
+                d.includes('COXÃO') || d.includes('MIOLO') || d.includes('RABO') ||
+                d.includes('MOELA') || d.includes('FIGADO') || d.includes('FÍGADO');
+
+            return isCorteAcougue ? 'AÇOUGUE' : 'FRIOS';
+        }
+
+        return 'LOJA';
+    }
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            processWorkbook(workbook, file.name);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processWorkbook(workbook, fileName) {
+        let allRows = [];
+        workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            allRows = allRows.concat(json);
+        });
+
+        allValidRecords = [];
+        excludedMonthKeys.clear();
+        excludedYesterdayKeys.clear();
+        selectedSector = null;
+
+        let maxDateObj = null;
+        let minDateObj = null;
+        let colIdx = { cod: -1, desc: -1, emb: -1, val: -1, operacao: -1, data: -1 };
+
+        allRows.forEach(row => {
+            const rowStr = row.map(c => String(c).toUpperCase().trim());
+
+            if (rowStr.includes('MERCADORIA') && rowStr.includes('DESCRICAO')) {
+                rowStr.forEach((cell, idx) => {
+                    if (cell === 'MERCADORIA') colIdx.cod = idx;
+                    if (cell === 'DESCRICAO') colIdx.desc = idx;
+                    if (cell === 'EMBALAGEM') colIdx.emb = idx;
+                    if (cell === 'VLR.TOTAL' || cell === 'VLR TOTAL' || cell === 'VALOR TOTAL') colIdx.val = idx;
+                    if (cell === 'OPERACAO' || cell === 'OPERAÇÃO') colIdx.operacao = idx;
+                    if (cell === 'DT.ULT.EV.' || cell === 'DATA' || cell === 'DT.ULT.EV') colIdx.data = idx;
+                });
+                return;
+            }
+
+            if (colIdx.cod !== -1 && colIdx.desc !== -1 && colIdx.val !== -1) {
+                const cod = String(row[colIdx.cod]).trim();
+                const desc = String(row[colIdx.desc]).trim();
+                const valRaw = parseNumber(row[colIdx.val]);
+
+                if (cod && desc && valRaw !== 0 && !cod.toUpperCase().includes('TOTAL')) {
+                    const absVal = Math.abs(valRaw);
+                    const emb = colIdx.emb !== -1 ? String(row[colIdx.emb]).trim() : '-';
+                    const setor = detectSector(desc);
+                    const opStr = colIdx.operacao !== -1 ? String(row[colIdx.operacao]).toUpperCase().trim() : '';
+                    const parsedDt = colIdx.data !== -1 ? parseExcelDate(row[colIdx.data]) : null;
+                    const prodKey = normalizeProductKey(cod, desc);
+
+                    if (parsedDt) {
+                        if (!maxDateObj || parsedDt.key > maxDateObj.key) maxDateObj = parsedDt;
+                        if (!minDateObj || parsedDt.key < minDateObj.key) minDateObj = parsedDt;
+                    }
+
+                    let categoria = 'AVARIA';
+                    if (opStr.includes('RESSARC')) categoria = 'AVARIA P/RESSARCIMENTO';
+                    else if (opStr.includes('DEGUST')) categoria = 'AVARIA P/ DEGUSTAÇÃO';
+                    else if (opStr.includes('VENC')) categoria = 'AVARIA P/VENCIMENTO';
+
+                    allValidRecords.push({
+                        prodKey,
+                        cod,
+                        desc,
+                        emb,
+                        setor,
+                        categoria,
+                        valor: absVal,
+                        dateKey: parsedDt ? parsedDt.key : null,
+                        dateLabel: parsedDt ? parsedDt.label : '-'
+                    });
+                }
+            }
+        });
+
+        currentYesterdayObj = getYesterdayDateObj();
+        currentDayOfMonth = new Date().getDate();
+        document.getElementById('yesterdayDateLabel').innerText = `Data: ${currentYesterdayObj.label}`;
+
+        let periodoTxt = '';
+        if (maxDateObj) {
+            const mesNome = MESES_PT[parseInt(maxDateObj.month, 10) - 1] || '';
+            const diaIni = minDateObj ? `${minDateObj.day}/${minDateObj.month}` : `01/${maxDateObj.month}`;
+            const diaFim = `${maxDateObj.day}/${maxDateObj.month}`;
+            periodoTxt = ` | AVARIAS ${mesNome} (Período ${diaIni} à ${diaFim})`;
+            document.getElementById('periodRangeLabel').innerText = `Soma Total (${diaIni} à ${diaFim})`;
+        } else {
+            document.getElementById('periodRangeLabel').innerText = `Soma de Todo o Período`;
+        }
+
+        document.getElementById('sectorDaysSubtitle').innerText = `Média diária (÷ ${currentDayOfMonth} dias) • Clique p/ filtrar`;
+        document.getElementById('reportSubtitle').innerText = `Filial 940${periodoTxt} | Arquivo: ${fileName}`;
+        uploadZone.classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('headerActions').classList.remove('hidden');
+
+        refreshDashboard();
+    }
+
+    function selectSector(setor) {
+        if (selectedSector === setor) {
+            selectedSector = null;
+        } else {
+            selectedSector = setor;
+        }
+        refreshDashboard();
+    }
+
+    function clearSectorFilter() {
+        selectedSector = null;
+        refreshDashboard();
+    }
+
+    function refreshDashboard() {
+        const btnBack = document.getElementById('btnBackAll');
+        const banner = document.getElementById('sectorFilterBanner');
+        const badge = document.getElementById('headerSectorBadge');
+
+        if (selectedSector) {
+            btnBack.classList.remove('hidden');
+            banner.classList.remove('hidden');
+            badge.classList.remove('hidden');
+            badge.innerText = `SETOR: ${selectedSector}`;
+            document.getElementById('sectorFilterText').innerText = `📌 Visualizando dados exclusivos do setor: ${selectedSector}`;
+            document.getElementById('topMonthTitle').innerText = `🏆 15 Maiores Perdas - ${selectedSector}`;
+            document.getElementById('topYesterdayTitle').innerText = `📅 15 Maiores de Ontem - ${selectedSector}`;
+            document.getElementById('chartCardTitle').innerText = `Destaque: ${selectedSector} vs. Demais Setores`;
+        } else {
+            btnBack.classList.add('hidden');
+            banner.classList.add('hidden');
+            badge.classList.add('hidden');
+            document.getElementById('topMonthTitle').innerText = `🏆 15 Maiores Perdas da Filial 940`;
+            document.getElementById('topYesterdayTitle').innerText = `📅 15 Maiores Perdas de Ontem`;
+            document.getElementById('chartCardTitle').innerText = `Comparativo Visual por Setor`;
+        }
+
+        let setoresTotal = {
+            'PADARIA': 0, 'AÇOUGUE': 0, 'FATIADOS': 0,
+            'HORT-FRUTTI': 0, 'LOJA': 0, 'CAFETERIA': 0, 'FRIOS': 0
+        };
+
+        allValidRecords.forEach(rec => {
+            if (setoresTotal[rec.setor] !== undefined) {
+                setoresTotal[rec.setor] += rec.valor;
+            }
+        });
+
+        const scopedRecords = selectedSector
+            ? allValidRecords.filter(rec => rec.setor === selectedSector)
+            : allValidRecords;
+
+        let categorias = {
+            'AVARIA': 0,
+            'AVARIA P/VENCIMENTO': 0,
+            'AVARIA P/RESSARCIMENTO': 0,
+            'AVARIA P/ DEGUSTAÇÃO': 0
+        };
+
+        let itemsMap = new Map();
+        let yesterdayMap = new Map();
+
+        scopedRecords.forEach(rec => {
+            categorias[rec.categoria] += rec.valor;
+
+            if (!excludedMonthKeys.has(rec.prodKey)) {
+                if (itemsMap.has(rec.prodKey)) {
+                    itemsMap.get(rec.prodKey).valor += rec.valor;
+                } else {
+                    itemsMap.set(rec.prodKey, { ...rec });
+                }
+            }
+
+            if (currentYesterdayObj && rec.dateKey === currentYesterdayObj.key && !excludedYesterdayKeys.has(rec.prodKey)) {
+                if (yesterdayMap.has(rec.prodKey)) {
+                    yesterdayMap.get(rec.prodKey).valor += rec.valor;
+                } else {
+                    yesterdayMap.set(rec.prodKey, { ...rec });
+                }
+            }
+        });
+
+        const topMonthList = Array.from(itemsMap.values()).sort((a, b) => b.valor - a.valor).slice(0, 15);
+        const topYesterdayList = Array.from(yesterdayMap.values()).sort((a, b) => b.valor - a.valor).slice(0, 15);
+
+        renderKPIs(categorias);
+        renderSectors(setoresTotal);
+        renderTop15Tables(topMonthList, topYesterdayList);
+    }
+
+    function renderKPIs(categorias) {
+        const totalGeral = Object.values(categorias).reduce((a, b) => a + b, 0);
+        const container = document.getElementById('kpiContainer');
+        const sufixo = selectedSector ? ` (${selectedSector})` : '';
+
+        const cards = [
+            {
+                title: `Avaria${sufixo}`,
+                val: categorias['AVARIA'],
+                isTotal: false,
+                actionCategory: 'AVARIA',
+                hint: 'Clique p/ ver todas e filtrar por setor'
+            },
+            {
+                title: `Avaria p/ Vencimento${sufixo}`,
+                val: categorias['AVARIA P/VENCIMENTO'],
+                isTotal: false,
+                actionCategory: 'AVARIA P/VENCIMENTO',
+                hint: 'Clique p/ ver todas e filtrar por setor'
+            },
+            {
+                title: `Avaria p/ Ressarcimento${sufixo}`,
+                val: categorias['AVARIA P/RESSARCIMENTO'],
+                isTotal: false,
+                actionCategory: 'AVARIA P/RESSARCIMENTO',
+                hint: 'Clique p/ ver todas e filtrar por setor'
+            },
+            {
+                title: `Avaria p/ Degustação${sufixo}`,
+                val: categorias['AVARIA P/ DEGUSTAÇÃO'],
+                isTotal: false,
+                actionCategory: 'AVARIA P/ DEGUSTAÇÃO',
+                hint: 'Clique p/ ver todas e filtrar por setor'
+            },
+            {
+                title: `Total Geral${sufixo}`,
+                val: totalGeral,
+                isTotal: true,
+                actionCategory: 'TODAS',
+                hint: 'Clique p/ ver todas as avarias por setor'
+            }
+        ];
+
+        container.innerHTML = cards.map(c => {
+            const clickAttr = c.actionCategory
+                ? `onclick="openAllAvariasModal('${c.actionCategory}')"`
+                : '';
+            const extraClass = `${c.isTotal ? 'total' : ''} ${c.actionCategory ? 'clickable-kpi' : ''}`;
+            const hintHtml = c.hint ? `<span class="kpi-hint">${c.hint}</span>` : '';
+
+            return `
+                <div class="kpi-card ${extraClass}" ${clickAttr} title="${c.hint || ''}">
+                    <div class="kpi-title">${c.title}</div>
+                    <div class="kpi-value">${formatBRL(c.val)}</div>
+                    ${hintHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openAllAvariasModal(initialCategory = 'AVARIA') {
+        modalInitialCategory = initialCategory;
+        modalSelectedSector = selectedSector || 'TODOS';
+        document.getElementById('modalCategorySelect').value = initialCategory;
+        document.getElementById('modalSearchInput').value = '';
+        document.getElementById('allAvariasModal').classList.remove('hidden');
+        renderModalAvarias();
+    }
+
+    function closeAllAvariasModal() {
+        document.body.classList.remove('printing-modal');
+        document.getElementById('allAvariasModal').classList.add('hidden');
+    }
+
+    function selectModalSector(setor) {
+        modalSelectedSector = setor;
+        renderModalAvarias();
+    }
+
+    function clearModalFilters() {
+        modalSelectedSector = 'TODOS';
+        document.getElementById('modalCategorySelect').value = modalInitialCategory;
+        document.getElementById('modalSearchInput').value = '';
+        renderModalAvarias();
+    }
+
+    function renderModalAvarias() {
+        const categoryFilter = document.getElementById('modalCategorySelect').value;
+        const searchTerm = document.getElementById('modalSearchInput').value.trim().toUpperCase();
+
+        const categoryRecords = allValidRecords.filter(rec => {
+            if (categoryFilter === 'TODAS') return true;
+            return rec.categoria === categoryFilter;
+        });
+
+        const sectorOrder = ['PADARIA', 'AÇOUGUE', 'FATIADOS', 'HORT-FRUTTI', 'LOJA', 'CAFETERIA', 'FRIOS'];
+        const sectorStats = {};
+        sectorOrder.forEach(s => {
+            sectorStats[s] = { count: 0, total: 0 };
+        });
+
+        let allCatTotal = 0;
+        let allCatCount = 0;
+
+        categoryRecords.forEach(rec => {
+            allCatTotal += rec.valor;
+            allCatCount += 1;
+            if (!sectorStats[rec.setor]) {
+                sectorStats[rec.setor] = { count: 0, total: 0 };
+            }
+            sectorStats[rec.setor].count += 1;
+            sectorStats[rec.setor].total += rec.valor;
+        });
+
+        const allBtnActive = modalSelectedSector === 'TODOS' ? 'active' : '';
+        let sidebarHtml = `
+            <button type="button" class="sector-filter-btn ${allBtnActive}" onclick="selectModalSector('TODOS')">
+                <div>
+                    <span class="sector-filter-name">TODOS OS SETORES</span>
+                    <span class="sector-filter-count">${allCatCount} lançamentos</span>
+                </div>
+                <span class="sector-filter-val">${formatBRL(allCatTotal)}</span>
+            </button>
+        `;
+
+        sectorOrder.forEach(setor => {
+            const st = sectorStats[setor];
+            const isActive = modalSelectedSector === setor ? 'active' : '';
+            sidebarHtml += `
+                <button type="button" class="sector-filter-btn ${isActive}" onclick="selectModalSector('${setor}')">
+                    <div>
+                        <span class="sector-filter-name">${setor}</span>
+                        <span class="sector-filter-count">${st.count} lançamentos</span>
+                    </div>
+                    <span class="sector-filter-val">${formatBRL(st.total)}</span>
+                </button>
+            `;
+        });
+
+        document.getElementById('modalSectorList').innerHTML = sidebarHtml;
+
+        const filteredRows = categoryRecords
+            .filter(rec => {
+                const matchSector = modalSelectedSector === 'TODOS' || rec.setor === modalSelectedSector;
+                if (!matchSector) return false;
+                if (!searchTerm) return true;
+                return (
+                    String(rec.cod).toUpperCase().includes(searchTerm) ||
+                    String(rec.desc).toUpperCase().includes(searchTerm) ||
+                    String(rec.emb).toUpperCase().includes(searchTerm) ||
+                    String(rec.setor).toUpperCase().includes(searchTerm)
+                );
+            })
+            .sort((a, b) => b.valor - a.valor);
+
+        const sumFiltered = filteredRows.reduce((acc, item) => acc + item.valor, 0);
+
+        document.getElementById('modalAvariasTitle').innerText =
+            categoryFilter === 'TODAS'
+                ? '📋 Todas as Avarias (Geral)'
+                : `📋 ${categoryFilter} por Setor`;
+        document.getElementById('modalAvariasSubtitle').innerText =
+            'Selecione um setor na coluna à esquerda para filtrar todas as ocorrências daquele setor';
+        document.getElementById('modalTotalValor').innerText = formatBRL(sumFiltered);
+        document.getElementById('modalTotalQtd').innerText = String(filteredRows.length);
+        document.getElementById('modalSetorAtual').innerText = modalSelectedSector;
+        document.getElementById('modalResultInfo').innerText = `Exibindo ${filteredRows.length} registro(s)`;
+
+        const tbody = document.querySelector('#modalAvariasTable tbody');
+        if (!filteredRows.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">
+                        Nenhuma ocorrência encontrada com os filtros selecionados.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = filteredRows.map((item, idx) => `
+            <tr>
+                <td class="font-bold">${idx + 1}º</td>
+                <td>${item.dateLabel || '-'}</td>
+                <td><span class="badge badge-warn">${item.setor}</span></td>
+                <td><code>${item.cod}</code></td>
+                <td class="font-bold" title="${item.desc}">${item.desc}</td>
+                <td>${item.emb}</td>
+                <td>${item.categoria}</td>
+                <td class="text-right val-neg">-${formatBRL(item.valor)}</td>
+            </tr>
+        `).join('');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('allAvariasModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeAllAvariasModal();
+            }
+        }
+    });
+
+    function renderSectors(setoresTotal) {
+        const tbody = document.querySelector('#sectorTable tbody');
+        let sumRealDia = 0, sumMetaDia = 0, sumRealMes = 0, sumMetaMes = 0;
+        const divisorDia = new Date().getDate() || 1;
+
+        const labels = [];
+        const dataReal = [];
+        const dataMeta = [];
+        const barColorsReal = [];
+        const barColorsMeta = [];
+
+        let html = '';
+        Object.keys(METAS_SETORES).forEach(setor => {
+            const realMes = setoresTotal[setor] || 0;
+            const realDia = realMes / divisorDia;
+            const metaDia = METAS_SETORES[setor].dia;
+            const metaMes = METAS_SETORES[setor].mes;
+            const pct = metaMes > 0 ? (realMes / metaMes) * 100 : 0;
+
+            sumRealDia += realDia;
+            sumMetaDia += metaDia;
+            sumRealMes += realMes;
+            sumMetaMes += metaMes;
+
+            labels.push(setor);
+            dataReal.push(realMes);
+            dataMeta.push(metaMes);
+
+            const isSelected = selectedSector === setor;
+            const isDimmed = selectedSector && !isSelected;
+
+            barColorsReal.push(isDimmed ? 'rgba(59, 130, 246, 0.28)' : (isSelected ? '#1e3a8a' : '#3b82f6'));
+            barColorsMeta.push(isDimmed ? 'rgba(203, 213, 225, 0.35)' : '#cbd5e1');
+
+            let badgeClass = 'badge-ok';
+            let barColor = '#16a34a';
+            if (pct >= 100) { badgeClass = 'badge-danger'; barColor = '#dc2626'; }
+            else if (pct >= 75) { badgeClass = 'badge-warn'; barColor = '#d97706'; }
+
+            const ultrapassou = realMes > metaMes;
+            const statusText = ultrapassou ? 'ULTRAPASSOU META MÊS' : 'DENTRO DA META MÊS';
+            const statusClass = ultrapassou ? 'status-out' : 'status-in';
+
+            const diaClass = realDia > metaDia ? 'val-neg' : 'val-ok';
+            const rowClass = `sector-row ${isSelected ? 'active-sector' : ''} ${isDimmed ? 'dimmed-sector' : ''}`;
+
+            html += `
+                <tr class="${rowClass}" onclick="selectSector('${setor}')" title="Clique para filtrar pelo setor ${setor}">
+                    <td class="font-bold">${isSelected ? '▶ ' : ''}${setor}</td>
+                    <td class="text-right ${diaClass}">${formatBRL(realDia)}</td>
+                    <td class="text-right">${formatBRL(metaDia)}</td>
+                    <td class="text-right font-bold">${formatBRL(realMes)}</td>
+                    <td class="text-right">${formatBRL(metaMes)}</td>
+                    <td>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="badge ${badgeClass}">${pct.toFixed(1)}%</span>
+                        </div>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${Math.min(pct, 100)}%; background: ${barColor};"></div>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="status-pill ${statusClass}">${statusText}</span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        const totalPct = sumMetaMes > 0 ? (sumRealMes / sumMetaMes) * 100 : 0;
+        const totalDiaClass = sumRealDia > sumMetaDia ? 'val-neg' : 'val-ok';
+        const totalUltrapassou = sumRealMes > sumMetaMes;
+        const totalStatusText = totalUltrapassou ? 'ULTRAPASSOU META MÊS' : 'DENTRO DA META MÊS';
+        const totalStatusClass = totalUltrapassou ? 'status-out' : 'status-in';
+
+        html += `
+            <tr style="background: #f1f5f9; font-weight: 700; cursor: pointer;" onclick="clearSectorFilter()" title="Clique para ver todos os setores">
+                <td>TOTAL GERAL</td>
+                <td class="text-right ${totalDiaClass}">${formatBRL(sumRealDia)}</td>
+                <td class="text-right">${formatBRL(sumMetaDia)}</td>
+                <td class="text-right">${formatBRL(sumRealMes)}</td>
+                <td class="text-right">${formatBRL(sumMetaMes)}</td>
+                <td><span class="badge ${totalPct >= 100 ? 'badge-danger' : 'badge-ok'}">${totalPct.toFixed(1)}%</span></td>
+                <td class="text-center"><span class="status-pill ${totalStatusClass}">${totalStatusText}</span></td>
+            </tr>
+        `;
+        tbody.innerHTML = html;
+
+        const ctx = document.getElementById('sectorChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Realizado Mês (R$)', data: dataReal, backgroundColor: barColorsReal, borderRadius: 4 },
+                    { label: 'Meta Mês (R$)', data: dataMeta, backgroundColor: barColorsMeta, borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const idx = elements[0].index;
+                        const clickedSector = labels[idx];
+                        if (clickedSector) selectSector(clickedSector);
+                    }
+                },
+                onHover: (event, elements) => {
+                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                },
+                animation: {
+                    onComplete: syncChartSnapshot
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 10, font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { font: { size: 9 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 9 },
+                            callback: value => 'R$ ' + value.toLocaleString('pt-BR')
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function removeTopItem(type, prodKey) {
+        if (type === 'month') {
+            excludedMonthKeys.add(prodKey);
+        } else if (type === 'yesterday') {
+            excludedYesterdayKeys.add(prodKey);
+        }
+        refreshDashboard();
+    }
+
+    function renderTop15Tables(topMonth, topYesterday) {
+        const yesterdayLabel = currentYesterdayObj ? currentYesterdayObj.label : '';
+        const setorMsg = selectedSector ? ` no setor ${selectedSector}` : '';
+
+        const renderRows = (list, type, emptyMsg) => {
+            if (!list.length) return `<tr><td colspan="5" style="text-align:center; padding: 14px; color: var(--text-muted);">${emptyMsg}</td></tr>`;
+            return list.map((item, idx) => `
+                <tr>
+                    <td class="font-bold">${idx + 1}º</td>
+                    <td><code>${item.cod}</code></td>
+                    <td class="font-bold" title="${item.desc}">${item.desc}</td>
+                    <td>${item.emb}</td>
+                    <td class="text-right val-neg">
+                        -${formatBRL(item.valor)}
+                        <button type="button" class="btn-remove-item" title="Excluir item do ranking" onclick="removeTopItem('${type}', '${item.prodKey}')">&times;</button>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        document.querySelector('#topMonthTable tbody').innerHTML = renderRows(
+            topMonth,
+            'month',
+            `Sem dados disponíveis${setorMsg} no período.`
+        );
+        document.querySelector('#topYesterdayTable tbody').innerHTML = renderRows(
+            topYesterday,
+            'yesterday',
+            `Nenhuma avaria registrada ontem (${yesterdayLabel})${setorMsg}.`
+        );
+    }
+</script>
+
+</body>
+</html>

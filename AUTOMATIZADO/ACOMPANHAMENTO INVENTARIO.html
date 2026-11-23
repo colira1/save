@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análise de Inventário - Progresso, Balanço Geral e Conferência</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #172554;
+      --red: #dc2626;
+      --red-bg: #fef2f2;
+      --green: #15803d;
+      --green-bg: #f0fdf4;
+      --amber: #b45309;
+      --amber-bg: #fffbeb;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+      color: #fff;
+      padding: 12px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .header-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    header p { margin: 3px 0 0; font-size: 0.82rem; opacity: 0.9; }
+
+    /* Valor do Inventário na parte de baixo do Cabeçalho */
+    .header-inventory-box {
+      display: none;
+      width: 100%;
+      padding-top: 9px;
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+    }
+    .header-inventory-box.visible {
+      display: flex;
+    }
+    .header-inventory-left {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+    .header-inventory-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .header-inv-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      background: rgba(219, 234, 254, 0.2);
+      color: #bfdbfe;
+      border: 1px solid rgba(191, 219, 254, 0.35);
+    }
+    .header-inv-badge.is-manual {
+      background: rgba(74, 222, 128, 0.2);
+      color: #bbf7d0;
+      border-color: rgba(74, 222, 128, 0.45);
+    }
+    .header-inventory-controls {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .header-inventory-controls input[type="text"] {
+      width: 132px;
+      padding: 5px 9px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(15, 23, 42, 0.55);
+      color: #fff;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+    .header-inventory-controls input[type="text"]:focus {
+      outline: none;
+      border-color: #60a5fa;
+      background: rgba(15, 23, 42, 0.8);
+    }
+    .btn-header-save {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 5px 11px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-header-save:hover { background: #15803d; }
+
+    /* Upload Compacto no Cabeçalho */
+    .header-upload {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1.5px dashed rgba(255, 255, 255, 0.45);
+      border-radius: 8px;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: 0.2s;
+    }
+    .header-upload.dragover {
+      border-color: #60a5fa;
+      background: rgba(59, 130, 246, 0.25);
+    }
+    .header-upload.loaded {
+      border-style: solid;
+      border-color: #4ade80;
+      background: rgba(22, 163, 74, 0.22);
+    }
+    .header-upload input[type="file"] { display: none; }
+    .header-upload-info {
+      display: flex;
+      flex-direction: column;
+      text-align: right;
+      font-size: 0.76rem;
+      line-height: 1.3;
+    }
+    .header-upload-hint { opacity: 0.85; }
+    .header-upload-status { color: #86efac; font-weight: 700; }
+
+    .btn-header-upload {
+      background: #2563eb;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: 0.15s;
+    }
+    .btn-header-upload:hover { background: #1d4ed8; }
+
+    .container { max-width: 1480px; margin: 20px auto; padding: 0 20px 28px; }
+
+    /* Seletor Global de Grupo de Contagem */
+    .group-selector-card {
+      background: var(--card);
+      border: 2px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .group-selector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .group-selector-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Retângulos de Grupos */
+    .groups-overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 12px;
+    }
+    .group-mini-card {
+      background: #f8fafc;
+      border: 2px solid var(--border);
+      border-radius: 9px;
+      padding: 13px 15px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .group-mini-card:hover {
+      border-color: #60a5fa;
+      background: #eff6ff;
+    }
+    .group-mini-card.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
+      box-shadow: 0 3px 8px rgba(30, 58, 138, 0.14);
+    }
+    .group-mini-card.all-groups-card {
+      background: #f1f5f9;
+    }
+    .group-mini-card.all-groups-card.selected {
+      border-color: var(--primary);
+      background: #dbeafe;
+    }
+    .group-mini-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-weight: 800;
+      font-size: 0.92rem;
+    }
+    .group-mini-money {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+      line-height: 1.45;
+    }
+    .group-mini-bar {
+      width: 100%;
+      height: 9px;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 6px 0 6px;
+    }
+    .group-mini-bar-fill {
+      height: 100%;
+      background: #16a34a;
+    }
+    .group-mini-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 15px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.86rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-pdf { background: #b91c1c; }
+    .btn-pdf:hover { background: #991b1b; }
+    .btn-outline {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid #cbd5e1;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .btn-outline:hover { background: #f8fafc; }
+
+    /* Card de Progresso da Contagem (%) */
+    .progress-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .progress-header h2 { margin: 0; font-size: 1rem; color: var(--text); }
+    .progress-stats { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.92rem; }
+    .stat-counted { color: var(--green); font-weight: 800; }
+    .stat-remaining { color: var(--amber); font-weight: 800; }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 26px;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #16a34a, #15803d);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: width 0.4s ease;
+      white-space: nowrap;
+      padding: 0 10px;
+    }
+    .progress-bar-rem {
+      color: #92400e;
+      font-weight: 800;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+    .progress-sub {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pos { color: var(--green); font-weight: 700; }
+    .neg { color: var(--red); font-weight: 700; }
+    .warn-txt { color: var(--amber); font-weight: 800; }
+
+    /* Painel de Exportação PDF & Recontagem */
+    .pdf-config-card {
+      background: #fff;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .pdf-config-title {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pdf-options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chk-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .chk-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .pdf-buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Seção Lista Completa de Produtos */
+    .products-section {
+      margin-bottom: 24px;
+    }
+
+    /* Abas */
+    .tabs-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tabs-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab-btn {
+      background: var(--card);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .tab-btn:hover { background: #f8fafc; }
+    .tab-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+    .tab-btn.active.warn { border-color: var(--amber); background: var(--amber-bg); color: var(--amber); }
+
+    .count-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      background: #e2e8f0;
+      color: #1e293b;
+      margin-left: 6px;
+    }
+
+    /* Barra de busca e ordenação */
+    .filters-bar {
+      background: var(--card);
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+    .filter-group input, .filter-group select {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      min-width: 190px;
+    }
+
+    /* Tabela Geral */
+    .table-wrapper {
+      background: var(--card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    table.main-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    table.main-table th, table.main-table td { padding: 9px 11px; border-bottom: 1px solid var(--border); text-align: left; }
+    table.main-table th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 700;
+    }
+    .b-lido { background: #dcfce7; color: #166534; }
+    .b-naolido-est { background: #fef3c7; color: #92400e; }
+    .b-naolido-sem { background: #f1f5f9; color: #64748b; }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .page-btns button {
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .page-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Linhas clicáveis */
+    tr.clickable-row { cursor: pointer; transition: background 0.12s; }
+    tr.clickable-row:hover td { background: #eff6ff !important; }
+    .readings-chip {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.71rem;
+      font-weight: 700;
+      background: #dbeafe;
+      color: #1e40af;
+      vertical-align: middle;
+    }
+
+    /* Modal de Detalhes de Leitura (Usuário, Local, Qtde lida) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 780px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 35px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .modal-header {
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .modal-header h3 { margin: 0; font-size: 1.05rem; }
+    .modal-header p { margin: 4px 0 0; font-size: 0.82rem; opacity: 0.9; }
+    .modal-close {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.28); }
+    .modal-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 14px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+    .modal-summary div span { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+    .modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+    }
+    .readings-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+    .readings-table th, .readings-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .readings-table th {
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+    .local-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: #e0e7ff;
+      color: #1e3a8a;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      text-align: right;
+      background: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top-row">
+    <div class="brand-box">
+      <div class="brand-logo" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2.5L20 7V17L12 21.5L4 17V7L12 2.5Z" stroke="#60a5fa" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M4 7L12 11.5L20 7" stroke="#93c5fd" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M12 11.5V21.5" stroke="#93c5fd" stroke-width="1.8"/>
+          <circle cx="17.5" cy="17.5" r="4.5" fill="#16a34a" stroke="#0f172a" stroke-width="1.5"/>
+          <path d="M15.8 17.5L17 18.7L19.3 16.4" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Painel de Conferência de Inventário</h1>
+        <p>Filtro por Grupo de Contagem • Valor Manual Persistente por Itens • Clique no produto para ver Usuário, Local e Qtde lida</p>
+      </div>
+    </div>
+
+    <!-- Área de Upload Compacta no Cabeçalho -->
+    <div class="header-upload" id="dropZone">
+      <div class="header-upload-info">
+        <span class="header-upload-hint">Arraste a planilha (.xlsx / .xls) aqui</span>
+        <span id="fileStatus" class="header-upload-status"></span>
+      </div>
+      <label class="btn-header-upload" for="fileInput">📂 Selecionar Planilha</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+    </div>
+  </div>
+
+  <!-- Valor do Inventário na parte de baixo do Cabeçalho -->
+  <div class="header-inventory-box" id="headerInventoryBox">
+    <div class="header-inventory-left">
+      <span class="header-inventory-title" id="headerInventoryTitle">💵 Valor do Inventário — Todos os Grupos</span>
+      <span class="header-inv-badge" id="headerInventoryBadge">🧮 SOMA DOS GRUPOS</span>
+      <div class="header-inventory-controls">
+        <input
+          type="text"
+          id="headerManualValueInput"
+          placeholder="Ex: 109.395,97"
+          onkeydown="if(event.key === 'Enter') applyManualValueFromHeader()"
+        />
+        <button type="button" class="btn-header-save" onclick="applyManualValueFromHeader()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Conteúdo Principal -->
+  <div id="dashboardContent" style="display: none;">
+
+    <!-- Seletor e Visão Separada por Grupo de Contagem -->
+    <div class="group-selector-card" id="groupSelectorCard"></div>
+
+    <!-- Barra de Progresso: % Contada vs % Falta Contar + Valores em R$ -->
+    <div class="progress-card" id="progressCard"></div>
+
+    <!-- Configurador de Exportação PDF & Recontagem -->
+    <div class="pdf-config-card">
+      <div class="pdf-config-title">
+        <span>🖨️ Imprimir / PDF <span id="pdfGroupTag" style="color: var(--primary);"></span></span>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn-outline" onclick="setBlindMode(true)">🙈 Folha de Recontagem</button>
+          <button type="button" class="btn-outline" onclick="setBlindMode(false)">👁️ Todas as Colunas</button>
+        </div>
+      </div>
+
+      <div class="pdf-options-row">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--muted);">Colunas:</span>
+        <label class="chk-label">
+          <input type="checkbox" id="chkShowEsperada" checked /> Qtde Esperada
+        </label>
+        <label class="chk-label">
+          <input type="checkbox" id="chkShowLido" checked /> Total Lido
+        </label>
+        <label class="chk-label">
+          <input type="checkbox" id="chkShowDivCusto" checked /> Divergência e Custo
+        </label>
+        <label class="chk-label" style="color: var(--primary);">
+          <input type="checkbox" id="chkShowRecontagem" checked /> Linha de Recontagem
+        </label>
+      </div>
+
+      <div class="pdf-buttons-row">
+        <button class="btn btn-pdf" onclick="exportCustomPDF('AUDITORIA_COMPLETA')">
+          📄 PDF Completo
+        </button>
+        <button class="btn btn-pdf" style="background: #dc2626;" onclick="exportCustomPDF('FALTAS_SOBRAS')">
+          🔻🔺 Faltas e Sobras
+        </button>
+        <button class="btn btn-pdf" style="background: #b45309;" onclick="exportCustomPDF('NAO_LIDOS_ESTOQUE')">
+          ⚠️ Não Lidos c/ Estoque
+        </button>
+        <button class="btn" onclick="exportCustomPDF('TOP5_FALTAS_SOBRAS')">
+          🏆 5 Maiores Sobras e 5 Maiores Faltas
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista Completa de Todos os Produtos -->
+    <div class="products-section">
+      <div class="tabs-bar">
+        <div class="tabs-group">
+          <button class="tab-btn active" id="tabLidos" onclick="switchTab('LIDOS')">
+            ✅ Itens Lidos (Com ou Sem Estoque) <span class="count-pill" id="countLidos">0</span>
+          </button>
+          <button class="tab-btn warn" id="tabNaoLidosEstoque" onclick="switchTab('NAO_LIDOS_ESTOQUE')">
+            ⚠️ Não Lidos COM Estoque <span class="count-pill" id="countNaoLidosEst">0</span>
+          </button>
+          <button class="tab-btn" id="tabTodos" onclick="switchTab('TODOS')">
+            📋 Todos os Itens <span class="count-pill" id="countTodos">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-bar">
+        <div class="filter-group" style="flex: 1; min-width: 240px;">
+          <label>Buscar Produto (Código ou Descrição)</label>
+          <input type="text" id="searchInput" placeholder="Ex: 21933, ALHO, CEBOLA, TOMATE..." oninput="applyFilters()" />
+        </div>
+
+        <div class="filter-group">
+          <label>Grupo de Contagem</label>
+          <select id="groupSelect" onchange="selectGroup(this.value)"></select>
+        </div>
+
+        <div class="filter-group">
+          <label>Filtrar por Estoque Esperado</label>
+          <select id="stockSubFilter" onchange="applyFilters()">
+            <option value="ALL">Todos (Com ou Sem Estoque)</option>
+            <option value="WITH_STOCK">Apenas COM Estoque Esperado</option>
+            <option value="WITHOUT_STOCK">Apenas SEM Estoque Esperado (0)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Ordenar por</label>
+          <select id="sortSelect" onchange="applyFilters()">
+            <option value="CUSTO_ASC">Maiores Faltas Primeiro (Custo -)</option>
+            <option value="CUSTO_DESC">Maiores Sobras Primeiro (Custo +)</option>
+            <option value="CUSTO_ABS">Maior Divergência em Valor Absoluto</option>
+            <option value="PROD_ASC">Descrição (A-Z)</option>
+            <option value="COD_ASC">Código</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="main-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Status Leitura</th>
+              <th>Produto (Clique para ver Usuário / Local / Qtde lida)</th>
+              <th>Grupo</th>
+              <th class="num">Qtde Esperada</th>
+              <th class="num">Total Lido</th>
+              <th class="num">Divergência</th>
+              <th class="num">Custo (R$)</th>
+            </tr>
+          </thead>
+          <tbody id="mainTableBody"></tbody>
+        </table>
+
+        <div class="pagination">
+          <div id="paginationInfo"></div>
+          <div class="page-btns">
+            <button id="prevBtn" onclick="changePage(-1)">◀ Anterior</button>
+            <button id="nextBtn" onclick="changePage(1)">Próxima ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal de Detalhes do Item (Usuário, Local, Qtde lida) -->
+<div class="modal-backdrop" id="itemModal" onclick="if(event.target === this) closeItemModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="modalTitle">Detalhes das Leituras</h3>
+        <p id="modalSubtitle"></p>
+      </div>
+      <button class="modal-close" onclick="closeItemModal()" title="Fechar">✕</button>
+    </div>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeItemModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MANUAL_STORAGE_KEY = 'inventario_valores_manuais_v1';
+
+  let allItems = [];
+  let filteredItems = [];
+  let availableGroups = [];
+  let selectedGroup = 'ALL';
+  let currentTab = 'LIDOS';
+  let currentPage = 1;
+  const pageSize = 50;
+
+  let manualOverrides = loadManualOverrides();
+
+  function loadManualOverrides() {
+    try {
+      const raw = localStorage.getItem(MANUAL_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveManualOverrides() {
+    try {
+      localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(manualOverrides));
+    } catch (e) {
+      // ignora erro de armazenamento se indisponível
+    }
+  }
+
+  function computeGroupSignature(itemsList) {
+    const keys = itemsList
+      .map(i => `${String(i.codigo).trim().toUpperCase()}|${String(i.produto).trim().toUpperCase()}`)
+      .sort();
+    return keys.join('||');
+  }
+
+  function getScopeKey(scopeId = selectedGroup) {
+    return scopeId === 'ALL' ? 'ALL' : `GRP_${scopeId}`;
+  }
+
+  function getScopeRawItems(scopeId = selectedGroup) {
+    return scopeId === 'ALL' ? allItems : allItems.filter(i => i.grupo === scopeId);
+  }
+
+  function getDirectManualOverride(scopeId = selectedGroup) {
+    const key = getScopeKey(scopeId);
+    const entry = manualOverrides[key];
+    if (!entry || typeof entry.valor !== 'number' || isNaN(entry.valor)) return null;
+
+    const currentSig = computeGroupSignature(getScopeRawItems(scopeId));
+    if (entry.signature && entry.signature === currentSig) {
+      return entry.valor;
+    }
+    return null;
+  }
+
+  function getSumOfAllGroupsTotal() {
+    if (!availableGroups.length) {
+      return getMoneyMetrics(allItems, 'ALL', { ignoreAllManual: true }).valorTotal;
+    }
+    return availableGroups.reduce((sum, grp) => {
+      const grpItems = allItems.filter(i => i.grupo === grp);
+      return sum + getMoneyMetrics(grpItems, grp).valorTotal;
+    }, 0);
+  }
+
+  function hasAnyGroupManualOverride() {
+    return availableGroups.some(grp => getDirectManualOverride(grp) !== null);
+  }
+
+  function setManualOverrideForScope(scopeId, val) {
+    const key = getScopeKey(scopeId);
+    const sig = computeGroupSignature(getScopeRawItems(scopeId));
+    manualOverrides[key] = {
+      valor: val,
+      signature: sig,
+      updatedAt: new Date().toISOString()
+    };
+    saveManualOverrides();
+  }
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeItemModal();
+  });
+
+  function setBlindMode(isBlind) {
+    document.getElementById('chkShowEsperada').checked = !isBlind;
+    document.getElementById('chkShowLido').checked = !isBlind;
+    document.getElementById('chkShowDivCusto').checked = !isBlind;
+    document.getElementById('chkShowRecontagem').checked = true;
+  }
+
+  function isZeroValue(val) {
+    if (val === null || val === undefined) return true;
+    if (typeof val === 'number') return val === 0;
+    const str = String(val).trim();
+    if (str === '' || str === '0' || str === '0,0' || str === '0.0' || str === '0,00' || str === '0.00' || str === '-') return true;
+    return false;
+  }
+
+  function parseCurrencyNumber(val) {
+    if (typeof val === 'number') return val;
+    if (!val && val !== 0) return 0;
+    const cleaned = String(val).replace(/R\$/g, '').trim().replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+
+  function formatCurrency(val) {
+    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatNumber(val) {
+    return val.toLocaleString('pt-BR');
+  }
+
+  function formatPercent(val) {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  }
+
+  function formatDateCell(val) {
+    if (!val) return '';
+    if (val instanceof Date && !isNaN(val)) {
+      return val.toLocaleDateString('pt-BR');
+    }
+    return String(val).trim();
+  }
+
+  function getGroupItems() {
+    let items = getScopeRawItems(selectedGroup);
+    const searchInput = document.getElementById('searchInput');
+    const search = searchInput ? searchInput.value.trim().toUpperCase() : '';
+    if (search) {
+      items = items.filter(item =>
+        String(item.codigo).toUpperCase().includes(search) ||
+        item.produto.toUpperCase().includes(search)
+      );
+    }
+    return items;
+  }
+
+  function getMoneyMetrics(itemsList, scopeId = selectedGroup, options = {}) {
+    const lidosEst = itemsList.filter(i => i.foiLido && i.temEstoque);
+    const naoLidosEst = itemsList.filter(i => !i.foiLido && i.temEstoque);
+    const totalEstCount = lidosEst.length + naoLidosEst.length;
+
+    const calculadoLido = lidosEst.reduce((acc, i) => acc + Math.abs(i.custo), 0);
+    const calculadoFalta = naoLidosEst.reduce((acc, i) => acc + Math.abs(i.custo), 0);
+    const calculadoTotal = calculadoLido + calculadoFalta;
+
+    const directManual = options.ignoreAllManual ? null : getDirectManualOverride(scopeId);
+    const hasGroupsSum = scopeId === 'ALL' && availableGroups.length > 0;
+    const groupsSum = hasGroupsSum ? getSumOfAllGroupsTotal() : calculadoTotal;
+
+    const isManual = directManual !== null || (hasGroupsSum && hasAnyGroupManualOverride());
+    const valorTotal = directManual !== null ? directManual : (hasGroupsSum ? groupsSum : calculadoTotal);
+
+    let valorLido = calculadoLido;
+    let valorFalta = calculadoFalta;
+
+    if (directManual !== null || hasGroupsSum) {
+      valorLido = Math.min(calculadoLido, Math.max(0, valorTotal));
+      valorFalta = Math.max(0, valorTotal - valorLido);
+    }
+
+    const pctItem = totalEstCount > 0 ? (lidosEst.length / totalEstCount) * 100 : 100;
+    const pctMoney = valorTotal > 0 ? (valorLido / valorTotal) * 100 : 100;
+
+    return {
+      lidosEstCount: lidosEst.length,
+      naoLidosEstCount: naoLidosEst.length,
+      totalEstCount,
+      valorTotal,
+      valorLido,
+      valorFalta,
+      calculadoTotal,
+      groupsSum,
+      isManual,
+      isDirectManual: directManual !== null,
+      pctItem,
+      pctMoney
+    };
+  }
+
+  function applyManualValueFromHeader() {
+    const input = document.getElementById('headerManualValueInput');
+    if (!input) return;
+    const raw = input.value.trim();
+    if (raw === '') return;
+    const parsed = Math.abs(parseCurrencyNumber(raw));
+    if (isNaN(parsed)) return;
+    setManualOverrideForScope(selectedGroup, parsed);
+    renderHeaderInventoryBox();
+    renderGroupSelector();
+    renderSummary();
+  }
+
+  function renderHeaderInventoryBox() {
+    const box = document.getElementById('headerInventoryBox');
+    if (!box || !allItems.length) {
+      if (box) box.classList.remove('visible');
+      return;
+    }
+    box.classList.add('visible');
+
+    const rawItems = getScopeRawItems(selectedGroup);
+    const metrics = getMoneyMetrics(rawItems, selectedGroup);
+    const label = selectedGroup === 'ALL' ? 'Todos os Grupos' : `Grupo ${selectedGroup}`;
+    const currentInputVal = metrics.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    let tagText = '⚙️ CALCULADO DA PLANILHA';
+    if (metrics.isDirectManual) {
+      tagText = '🔒 VALOR MANUAL ATIVO';
+    } else if (selectedGroup === 'ALL' && availableGroups.length > 0) {
+      tagText = metrics.isManual ? '🧮 SOMA DOS GRUPOS (COM MANUAL)' : '🧮 SOMA DOS GRUPOS';
+    }
+
+    document.getElementById('headerInventoryTitle').textContent = `💵 Valor do Inventário — ${label}`;
+
+    const badge = document.getElementById('headerInventoryBadge');
+    badge.textContent = tagText;
+    badge.classList.toggle('is-manual', metrics.isManual);
+
+    const input = document.getElementById('headerManualValueInput');
+    if (input && document.activeElement !== input) {
+      input.value = currentInputVal;
+    }
+  }
+
+  function selectGroup(groupVal) {
+    selectedGroup = groupVal;
+    const groupSelect = document.getElementById('groupSelect');
+    if (groupSelect) groupSelect.value = groupVal;
+
+    renderHeaderInventoryBox();
+    renderGroupSelector();
+    renderSummary();
+    applyFilters();
+  }
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+      allItems = [];
+      let currentItem = null;
+
+      rows.forEach(row => {
+        const keys = Object.keys(row);
+        const getCol = (candidates) => {
+          const found = keys.find(k => candidates.includes(k.trim().toUpperCase()));
+          return found ? row[found] : '';
+        };
+
+        const rawCodigo = getCol(['CÓDIGO', 'CODIGO']);
+        const produto = String(getCol(['PRODUTO', 'DESCRIÇÃO', 'DESCRICAO'])).trim();
+        const usuario = String(getCol(['USUÁRIO', 'USUARIO'])).trim();
+        const local = String(getCol(['LOCAL'])).trim();
+        const qtdeLida = String(getCol(['QTDE LIDA', 'QTD LIDA'])).trim();
+        const dataHora1 = formatDateCell(getCol(['DATA HORA']));
+        const dataHora2 = formatDateCell(getCol(['DATA HORA.1', 'HORA']));
+
+        if (produto !== '') {
+          const codigo = rawCodigo !== '' ? String(rawCodigo).replace(/\.0$/, '').trim() : '';
+          const rawGrupo = getCol(['GRUPO DE CONTAGEM', 'GRUPO']);
+          const grupo = String(rawGrupo).trim() || 'Sem Grupo';
+          const qtdeEsperadaRaw = getCol(['QTDE ESPERADA', 'QTD ESPERADA']);
+          const totalLidoRaw = getCol(['TOTAL LIDO']);
+          const divergenciaRaw = getCol(['DIVERGÊNCIA', 'DIVERGENCIA']);
+          const custo = parseCurrencyNumber(getCol(['CUSTO']));
+
+          const foiLido = !isZeroValue(totalLidoRaw);
+          const temEstoque = !isZeroValue(qtdeEsperadaRaw);
+
+          currentItem = {
+            idx: allItems.length,
+            codigo,
+            produto,
+            grupo,
+            qtdeEsperada: isZeroValue(qtdeEsperadaRaw) ? '0' : String(qtdeEsperadaRaw).trim(),
+            totalLido: isZeroValue(totalLidoRaw) ? '0' : String(totalLidoRaw).trim(),
+            divergencia: isZeroValue(divergenciaRaw) ? '0' : String(divergenciaRaw).trim(),
+            custo,
+            foiLido,
+            temEstoque,
+            leituras: []
+          };
+
+          if (usuario || local || qtdeLida) {
+            currentItem.leituras.push({
+              usuario: usuario || '—',
+              local: local || '—',
+              qtdeLida: qtdeLida || currentItem.totalLido,
+              dataHora: [dataHora1, dataHora2].filter(Boolean).join(' ')
+            });
+          }
+
+          allItems.push(currentItem);
+        } else if (currentItem && (usuario || local || qtdeLida)) {
+          currentItem.leituras.push({
+            usuario: usuario || '—',
+            local: local || '—',
+            qtdeLida: qtdeLida || '—',
+            dataHora: [dataHora1, dataHora2].filter(Boolean).join(' ')
+          });
+        }
+      });
+
+      const uniqueGroups = [...new Set(allItems.map(i => i.grupo))];
+      availableGroups = uniqueGroups.sort((a, b) => {
+        const na = Number(a), nb = Number(b);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.localeCompare(b, 'pt-BR');
+      });
+
+      selectedGroup = 'ALL';
+
+      const groupSelect = document.getElementById('groupSelect');
+      groupSelect.innerHTML = `<option value="ALL">Todos os Grupos (${availableGroups.length})</option>` +
+        availableGroups.map(g => `<option value="${g}">Grupo ${g}</option>`).join('');
+
+      dropZone.classList.add('loaded');
+      document.getElementById('fileStatus').textContent = `✅ ${file.name} (${formatNumber(allItems.length)} itens • ${availableGroups.length} grupo${availableGroups.length !== 1 ? 's' : ''})`;
+      document.getElementById('dashboardContent').style.display = 'block';
+
+      renderHeaderInventoryBox();
+      renderGroupSelector();
+      renderSummary();
+      switchTab('TODOS');
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderGroupSelector() {
+    const card = document.getElementById('groupSelectorCard');
+    const groupStats = availableGroups.map(grp => {
+      const items = allItems.filter(i => i.grupo === grp);
+      const metrics = getMoneyMetrics(items, grp);
+      return { grp, ...metrics };
+    });
+
+    const allMetrics = getMoneyMetrics(allItems, 'ALL');
+
+    card.innerHTML = `
+      <div class="group-selector-header">
+        <h3>🗂️ Visualização por Grupo de Contagem (${availableGroups.length} ${availableGroups.length === 1 ? 'grupo encontrado' : 'grupos encontrados'})</h3>
+        <span style="font-size: 0.78rem; color: var(--muted);">Clique em um retângulo para isolar progresso, valores em R$, lista e PDF</span>
+      </div>
+
+      <div class="groups-overview-grid">
+        <div class="group-mini-card all-groups-card ${selectedGroup === 'ALL' ? 'selected' : ''}" onclick="selectGroup('ALL')">
+          <div class="group-mini-top">
+            <span>🌐 Todos os Grupos ${allMetrics.isManual ? '🔒' : ''}</span>
+            <span class="${allMetrics.pctItem >= 100 ? 'pos' : 'warn-txt'}">${formatPercent(allMetrics.pctItem)} contado</span>
+          </div>
+          <div class="group-mini-money">
+            Total do Inventário: <strong>${formatCurrency(allMetrics.valorTotal)}</strong><br/>
+            Total Lido: <strong class="pos">${formatCurrency(allMetrics.valorLido)}</strong> • Falta: <strong class="warn-txt">${formatCurrency(allMetrics.valorFalta)}</strong>
+          </div>
+          <div class="group-mini-bar">
+            <div class="group-mini-bar-fill" style="width: ${allMetrics.pctItem.toFixed(1)}%;"></div>
+          </div>
+          <div class="group-mini-stats">
+            <span>Itens c/ estoque: <strong>${allMetrics.lidosEstCount}/${allMetrics.totalEstCount}</strong></span>
+          </div>
+        </div>
+
+        ${groupStats.map(st => `
+          <div class="group-mini-card ${selectedGroup === st.grp ? 'selected' : ''}" onclick="selectGroup('${st.grp.replace(/'/g, "\\'")}')">
+            <div class="group-mini-top">
+              <span>📦 Grupo ${st.grp} ${st.isManual ? '🔒' : ''}</span>
+              <span class="${st.pctItem >= 100 ? 'pos' : 'warn-txt'}">${formatPercent(st.pctItem)} contado</span>
+            </div>
+            <div class="group-mini-money">
+              Total do Inventário: <strong>${formatCurrency(st.valorTotal)}</strong><br/>
+              Total Lido: <strong class="pos">${formatCurrency(st.valorLido)}</strong> • Falta: <strong class="warn-txt">${formatCurrency(st.valorFalta)}</strong>
+            </div>
+            <div class="group-mini-bar">
+              <div class="group-mini-bar-fill" style="width: ${st.pctItem.toFixed(1)}%;"></div>
+            </div>
+            <div class="group-mini-stats">
+              <span>Itens c/ estoque: <strong>${st.lidosEstCount}/${st.totalEstCount}</strong></span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    document.getElementById('pdfGroupTag').textContent = selectedGroup === 'ALL'
+      ? '(Todos os Grupos)'
+      : `(Grupo ${selectedGroup})`;
+  }
+
+  function openItemModal(itemIdx) {
+    const item = allItems[itemIdx];
+    if (!item) return;
+
+    document.getElementById('modalTitle').textContent = `${item.codigo} — ${item.produto}`;
+    document.getElementById('modalSubtitle').textContent = `Grupo de Contagem: ${item.grupo || '—'} • Total de registros de bipagem: ${item.leituras.length}`;
+
+    const custoClass = item.custo < -0.0001 ? 'neg' : (item.custo > 0.0001 ? 'pos' : '');
+    document.getElementById('modalSummary').innerHTML = `
+      <div><span>Qtde Esperada</span><strong>${item.qtdeEsperada}</strong></div>
+      <div><span>Total Lido</span><strong>${item.totalLido}</strong></div>
+      <div><span>Divergência</span><strong class="${custoClass}">${item.divergencia}</strong></div>
+      <div><span>Custo (R$)</span><strong class="${custoClass}">${formatCurrency(item.custo)}</strong></div>
+    `;
+
+    const modalBody = document.getElementById('modalBody');
+    if (item.leituras.length > 0) {
+      const hasDate = item.leituras.some(l => l.dataHora);
+      modalBody.innerHTML = `
+        <table class="readings-table">
+          <thead>
+            <tr>
+              <th style="width: 44px;">#</th>
+              <th>Usuário</th>
+              <th>Local</th>
+              <th class="num">Qtde lida</th>
+              ${hasDate ? '<th>Data / Hora</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${item.leituras.map((l, i) => `
+              <tr>
+                <td><strong>${i + 1}</strong></td>
+                <td><strong>${l.usuario}</strong></td>
+                <td><span class="local-badge">${l.local}</span></td>
+                <td class="num"><strong>${l.qtdeLida}</strong></td>
+                ${hasDate ? `<td>${l.dataHora || '—'}</td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else if (item.foiLido) {
+      modalBody.innerHTML = `
+        <p style="margin: 0; color: var(--muted);">
+          Este item possui <strong>Total Lido = ${item.totalLido}</strong>, porém a planilha exportada não contém as colunas detalhadas de <em>Usuário</em>, <em>Local</em> e <em>Qtde lida</em>.
+        </p>
+      `;
+    } else {
+      modalBody.innerHTML = `
+        <p style="margin: 0; color: var(--amber); font-weight: 700;">
+          ⚠️ Este item ainda NÃO foi lido (0 bipagens registradas no inventário).
+        </p>
+      `;
+    }
+
+    document.getElementById('itemModal').classList.add('open');
+  }
+
+  function closeItemModal() {
+    document.getElementById('itemModal').classList.remove('open');
+  }
+
+  function getAllFaltas(itemsSource = getGroupItems()) {
+    return itemsSource.filter(i => i.custo < -0.0001).sort((a, b) => a.custo - b.custo);
+  }
+
+  function getAllSobras(itemsSource = getGroupItems()) {
+    return itemsSource.filter(i => i.custo > 0.0001).sort((a, b) => b.custo - a.custo);
+  }
+
+  function renderReadingsBadge(item) {
+    if (!item.leituras.length) return '';
+    const label = item.leituras.length === 1 ? '1 leitura' : `${item.leituras.length} leituras`;
+    return `<span class="readings-chip">${label}</span>`;
+  }
+
+  function renderSummary() {
+    const scopeItems = getGroupItems();
+    const searchVal = document.getElementById('searchInput')?.value.trim();
+    const scopeLabel = selectedGroup === 'ALL'
+      ? (searchVal ? 'Todos os Grupos (Filtrado)' : 'Todos os Grupos')
+      : `Grupo ${selectedGroup}${searchVal ? ' (Filtrado)' : ''}`;
+
+    const lidos = scopeItems.filter(i => i.foiLido);
+    const metrics = getMoneyMetrics(scopeItems, selectedGroup);
+
+    const pctContada = metrics.pctItem;
+    const pctFaltaContar = metrics.totalEstCount > 0
+      ? (metrics.naoLidosEstCount / metrics.totalEstCount) * 100
+      : 0;
+
+    document.getElementById('progressCard').innerHTML = `
+      <div class="progress-header">
+        <h2>📈 Progresso da Contagem — ${scopeLabel} (Total do Inventário: <strong>${formatCurrency(metrics.valorTotal)}</strong> • Total Lido: <strong class="pos">${formatCurrency(metrics.valorLido)}</strong> • Falta: <strong class="warn-txt">${formatCurrency(metrics.valorFalta)}</strong>)</h2>
+        <div class="progress-stats">
+          <span class="stat-counted">✅ Já Contado: ${formatPercent(pctContada)} (${formatNumber(metrics.lidosEstCount)} itens • ${formatCurrency(metrics.valorLido)})</span>
+          <span class="stat-remaining">⏳ Falta Contar: ${formatPercent(pctFaltaContar)} (${formatNumber(metrics.naoLidosEstCount)} itens • ${formatCurrency(metrics.valorFalta)})</span>
+        </div>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" style="width: ${pctContada.toFixed(2)}%;">
+          ${pctContada >= 12 ? `${formatPercent(pctContada)} (${formatCurrency(metrics.valorLido)})` : ''}
+        </div>
+        <div class="progress-bar-rem">
+          ${pctFaltaContar >= 8 ? `${formatPercent(pctFaltaContar)} (${formatCurrency(metrics.valorFalta)})` : ''}
+        </div>
+      </div>
+      <div class="progress-sub">
+        <span>Total de itens lidos (incluindo ${formatNumber(lidos.length - metrics.lidosEstCount)} encontrados sem estoque esperado): <strong>${formatNumber(lidos.length)} itens</strong></span>
+        <span>Total do Inventário: <strong>${formatCurrency(metrics.valorTotal)}</strong> • Total Lido: <strong class="pos">${formatCurrency(metrics.valorLido)}</strong> • Falta: <strong class="warn-txt">${formatCurrency(metrics.valorFalta)}</strong></span>
+      </div>
+    `;
+
+    document.getElementById('countLidos').textContent = formatNumber(lidos.length);
+    document.getElementById('countNaoLidosEst').textContent = formatNumber(metrics.naoLidosEstCount);
+    document.getElementById('countTodos').textContent = formatNumber(scopeItems.length);
+  }
+
+  function switchTab(tabName) {
+    currentTab = tabName;
+    document.getElementById('tabLidos').classList.toggle('active', tabName === 'LIDOS');
+    document.getElementById('tabNaoLidosEstoque').classList.toggle('active', tabName === 'NAO_LIDOS_ESTOQUE');
+    document.getElementById('tabTodos').classList.toggle('active', tabName === 'TODOS');
+
+    const stockSubFilter = document.getElementById('stockSubFilter');
+    if (tabName === 'NAO_LIDOS_ESTOQUE') {
+      stockSubFilter.value = 'WITH_STOCK';
+      stockSubFilter.disabled = true;
+    } else {
+      stockSubFilter.value = 'ALL';
+      stockSubFilter.disabled = false;
+    }
+
+    applyFilters();
+  }
+
+  function applyFilters() {
+    renderSummary();
+
+    const stockSub = document.getElementById('stockSubFilter').value;
+    const sortBy = document.getElementById('sortSelect').value;
+
+    filteredItems = getGroupItems().filter(item => {
+      if (currentTab === 'LIDOS' && !item.foiLido) return false;
+      if (currentTab === 'NAO_LIDOS_ESTOQUE' && (item.foiLido || !item.temEstoque)) return false;
+
+      if (stockSub === 'WITH_STOCK' && !item.temEstoque) return false;
+      if (stockSub === 'WITHOUT_STOCK' && item.temEstoque) return false;
+
+      return true;
+    });
+
+    filteredItems.sort((a, b) => {
+      if (sortBy === 'CUSTO_ASC') return a.custo - b.custo;
+      if (sortBy === 'CUSTO_DESC') return b.custo - a.custo;
+      if (sortBy === 'CUSTO_ABS') return Math.abs(b.custo) - Math.abs(a.custo);
+      if (sortBy === 'PROD_ASC') return a.produto.localeCompare(b.produto);
+      if (sortBy === 'COD_ASC') return Number(a.codigo) - Number(b.codigo);
+      return 0;
+    });
+
+    currentPage = 1;
+    renderMainTable();
+  }
+
+  function renderMainTable() {
+    const tbody = document.getElementById('mainTableBody');
+    const totalItems = filteredItems.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * pageSize;
+    const pageItems = filteredItems.slice(start, start + pageSize);
+
+    tbody.innerHTML = pageItems.map(item => {
+      let badgeHtml = '';
+      if (item.foiLido) {
+        badgeHtml = `<span class="badge b-lido">Lido${item.temEstoque ? '' : ' (S/ Estoque)'}</span>`;
+      } else if (item.temEstoque) {
+        badgeHtml = `<span class="badge b-naolido-est">Não Lido C/ Estoque</span>`;
+      } else {
+        badgeHtml = `<span class="badge b-naolido-sem">Não Lido S/ Estoque</span>`;
+      }
+
+      const custoClass = item.custo < -0.0001 ? 'neg' : (item.custo > 0.0001 ? 'pos' : '');
+
+      return `
+        <tr class="clickable-row" onclick="openItemModal(${item.idx})" title="Clique para ver Usuário, Local e Qtde lida">
+          <td><strong>${item.codigo}</strong></td>
+          <td>${badgeHtml}</td>
+          <td>${item.produto}${renderReadingsBadge(item)}</td>
+          <td>${item.grupo}</td>
+          <td class="num">${item.qtdeEsperada}</td>
+          <td class="num"><strong>${item.totalLido}</strong></td>
+          <td class="num ${custoClass}">${item.divergencia}</td>
+          <td class="num ${custoClass}">${formatCurrency(item.custo)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const somaCusto = filteredItems.reduce((acc, i) => acc + i.custo, 0);
+    document.getElementById('paginationInfo').innerHTML = `
+      Mostrando <strong>${pageItems.length}</strong> de <strong>${formatNumber(totalItems)}</strong> itens |
+      Saldo Líquido da Lista: <strong class="${somaCusto < 0 ? 'neg' : 'pos'}">${formatCurrency(somaCusto)} (${somaCusto >= 0 ? 'POSITIVO' : 'NEGATIVO'})</strong> |
+      Página <strong>${currentPage}</strong> de <strong>${totalPages}</strong>
+    `;
+
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+  }
+
+  function changePage(delta) {
+    currentPage += delta;
+    renderMainTable();
+  }
+
+  function buildDynamicColumns() {
+    const showEsperada = document.getElementById('chkShowEsperada').checked;
+    const showLido = document.getElementById('chkShowLido').checked;
+    const showDivCusto = document.getElementById('chkShowDivCusto').checked;
+    const showRecontagem = document.getElementById('chkShowRecontagem').checked;
+
+    const head = ['Código', 'Grupo', 'Produto'];
+    const colStyles = {
+      0: { cellWidth: 20, fontStyle: 'bold' },
+      1: { cellWidth: 16, halign: 'center' },
+      2: { cellWidth: 'auto' }
+    };
+    let colIdx = 3;
+
+    if (showEsperada) {
+      head.push('Qtde Esperada');
+      colStyles[colIdx++] = { halign: 'right', cellWidth: 32 };
+    }
+    if (showLido) {
+      head.push('Total Lido');
+      colStyles[colIdx++] = { halign: 'right', cellWidth: 32 };
+    }
+    if (showDivCusto) {
+      head.push('Divergência', 'Custo (R$)');
+      colStyles[colIdx++] = { halign: 'right', cellWidth: 32 };
+      colStyles[colIdx++] = { halign: 'right', cellWidth: 26 };
+    }
+    if (showRecontagem) {
+      head.push('Recontagem / Observação');
+      colStyles[colIdx++] = { halign: 'center', cellWidth: 44 };
+    }
+
+    return { head, colStyles, showEsperada, showLido, showDivCusto, showRecontagem };
+  }
+
+  function mapItemToRow(item, opts) {
+    const row = [String(item.codigo), String(item.grupo), item.produto];
+    if (opts.showEsperada) row.push(item.qtdeEsperada);
+    if (opts.showLido) row.push(item.totalLido);
+    if (opts.showDivCusto) {
+      row.push(item.divergencia, formatCurrency(item.custo));
+    }
+    if (opts.showRecontagem) {
+      row.push('_____________________');
+    }
+    return row;
+  }
+
+  function addSectionToPDF(doc, title, items, headerColor, startY, opts) {
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(headerColor[0], headerColor[1], headerColor[2]);
+    doc.text(`${title} (${formatNumber(items.length)} itens)`, 14, startY);
+    doc.setTextColor(15, 23, 42);
+
+    const body = items.length
+      ? items.map(i => mapItemToRow(i, opts))
+      : [['—', '—', 'Nenhum item nesta categoria']];
+
+    doc.autoTable({
+      startY: startY + 2,
+      head: [opts.head],
+      body: body,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2.6, overflow: 'linebreak', valign: 'middle' },
+      headStyles: { fillColor: headerColor, textColor: 255, fontStyle: 'bold' },
+      columnStyles: opts.colStyles,
+      margin: { left: 14, right: 14 }
+    });
+
+    return doc.lastAutoTable.finalY + 8;
+  }
+
+  function exportCustomPDF(mode) {
+    const scopeItems = getGroupItems();
+    if (!scopeItems.length) return alert('Nenhum item encontrado para gerar o PDF.');
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const nowStr = new Date().toLocaleString('pt-BR');
+    const opts = buildDynamicColumns();
+
+    const isBlind = !opts.showEsperada && !opts.showLido && !opts.showDivCusto;
+    const subtitleMode = isBlind ? 'FOLHA DE RECONTAGEM' : 'RELATÓRIO DE CONFERÊNCIA';
+    const groupTitle = selectedGroup === 'ALL' ? 'Todos os Grupos' : `Grupo ${selectedGroup}`;
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Inventário (${groupTitle}) — ${subtitleMode}`, 14, 13);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em: ${nowStr}`, 14, 19);
+
+    let y = 25;
+
+    if (mode === 'AUDITORIA_COMPLETA') {
+      y = addSectionToPDF(doc, '1. LISTA COMPLETA DE FALTAS', getAllFaltas(scopeItems), [185, 28, 28], y, opts);
+      if (y > 165) { doc.addPage(); y = 16; }
+      y = addSectionToPDF(doc, '2. LISTA COMPLETA DE SOBRAS', getAllSobras(scopeItems), [21, 128, 61], y, opts);
+      if (y > 165) { doc.addPage(); y = 16; }
+      const naoLidos = scopeItems.filter(i => !i.foiLido && i.temEstoque);
+      addSectionToPDF(doc, '3. ITENS NÃO LIDOS COM ESTOQUE', naoLidos, [180, 83, 9], y, opts);
+    } else if (mode === 'FALTAS_SOBRAS') {
+      y = addSectionToPDF(doc, '1. LISTA COMPLETA DE FALTAS', getAllFaltas(scopeItems), [185, 28, 28], y, opts);
+      if (y > 165) { doc.addPage(); y = 16; }
+      addSectionToPDF(doc, '2. LISTA COMPLETA DE SOBRAS', getAllSobras(scopeItems), [21, 128, 61], y, opts);
+    } else if (mode === 'NAO_LIDOS_ESTOQUE') {
+      const naoLidos = scopeItems.filter(i => !i.foiLido && i.temEstoque);
+      addSectionToPDF(doc, 'ITENS NÃO LIDOS COM ESTOQUE ESPERADO', naoLidos, [180, 83, 9], y, opts);
+    } else if (mode === 'TOP5_FALTAS_SOBRAS') {
+      const top5Sobras = getAllSobras(scopeItems).slice(0, 5);
+      const top5Faltas = getAllFaltas(scopeItems).slice(0, 5);
+      y = addSectionToPDF(doc, '5 MAIORES SOBRAS', top5Sobras, [21, 128, 61], y, opts);
+      if (y > 165) { doc.addPage(); y = 16; }
+      addSectionToPDF(doc, '5 MAIORES FALTAS', top5Faltas, [185, 28, 28], y, opts);
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      doc.setPage(p);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(
+        `Página ${p} de ${pageCount}`,
+        doc.internal.pageSize.getWidth() - 32,
+        doc.internal.pageSize.getHeight() - 8
+      );
+    }
+
+    const groupSuffix = selectedGroup === 'ALL' ? '' : `_Grupo_${selectedGroup}`;
+    doc.save(`Inventario${groupSuffix}_${mode}${isBlind ? '_FolhaDeRecontagem' : ''}.pdf`);
+  }
+</script>
+
+</body>
+</html>

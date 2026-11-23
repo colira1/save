@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHBOARD NEGATIVO</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --muted: #64748b;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1550px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: var(--card);
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .app-logo {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(30, 64, 175, 0.25);
+        }
+
+        .header-text h1 {
+            font-size: 1.45rem;
+            color: var(--primary);
+            margin-bottom: 3px;
+            letter-spacing: 0.5px;
+            font-weight: 800;
+        }
+
+        .header-text p {
+            color: var(--muted);
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        /* Área compacta dentro do cabeçalho (aparece após subir os 2 arquivos) */
+        .header-uploads {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        header.uploads-docked .header-uploads {
+            display: flex;
+        }
+
+        .mini-upload-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .mini-upload-pill .pill-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mini-upload-pill strong {
+            color: #166534;
+            font-size: 0.78rem;
+        }
+
+        .mini-upload-pill span {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.74rem;
+        }
+
+        .btn-change-file {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 4px 8px;
+            font-size: 0.74rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-change-file:hover {
+            background: #f1f5f9;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .upload-card {
+            background: var(--card);
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 16px 20px;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .upload-card.loaded {
+            border-color: var(--success);
+            border-style: solid;
+            background: #f0fdf4;
+        }
+
+        .upload-card h3 {
+            font-size: 0.98rem;
+            margin-bottom: 6px;
+        }
+
+        .upload-card p {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-bottom: 12px;
+            line-height: 1.45;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            font-size: 0.88rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .upload-card.loaded .status-badge {
+            color: var(--success);
+        }
+
+        .controls {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .filter-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            flex: 1;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .field-group label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        input[type="text"], input[type="number"], select {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.86rem;
+            outline: none;
+            background: #fff;
+        }
+
+        input[type="text"] {
+            min-width: 220px;
+        }
+
+        input[type="number"] {
+            width: 105px;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        input:disabled, select:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #cbd5e1;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            flex: 1;
+            min-width: 155px;
+            transition: all 0.2s;
+        }
+
+        .stat-box span {
+            display: block;
+            font-size: 0.76rem;
+            color: var(--muted);
+        }
+
+        .stat-box strong {
+            font-size: 1.15rem;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-box.clickable {
+            cursor: pointer;
+            border: 2px solid #cbd5e1;
+            user-select: none;
+        }
+
+        .stat-box.clickable:hover {
+            border-color: var(--primary-hover);
+            background: #f8fafc;
+        }
+
+        .stat-box.clickable.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+            box-shadow: 0 2px 6px rgba(30, 64, 175, 0.14);
+        }
+
+        .stat-box.clickable.active span {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .table-wrapper {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+        }
+
+        thead {
+            background: #f1f5f9;
+            position: sticky;
+            top: 0;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            font-weight: 700;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background: #e2e8f0;
+        }
+
+        td.num, th.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        tfoot tr {
+            background: #f1f5f9;
+            font-weight: 800;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        tfoot td {
+            padding: 10px;
+            font-size: 0.88rem;
+            color: var(--text);
+        }
+
+        .code-col {
+            font-family: monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .badge-negativo {
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
+
+        .badge-sem-negativo {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
+
+        .neg {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .pos {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .zero {
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 44px 20px;
+            color: var(--muted);
+            white-space: normal;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header id="mainHeader">
+        <div class="header-brand">
+            <div class="app-logo" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    <circle cx="18.5" cy="18.5" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"></circle>
+                    <line x1="16.5" y1="18.5" x2="20.5" y2="18.5" stroke="#ffffff" stroke-width="2"></line>
+                </svg>
+            </div>
+            <div class="header-text">
+                <h1>DASHBOARD NEGATIVO</h1>
+                <p>ACERTE OS NEGATIVOS ANTES DO INVENTARIO</p>
+            </div>
+        </div>
+
+        <!-- Os 2 arquivos sobem para cá quando ambos são carregados -->
+        <div class="header-uploads" id="headerUploads">
+            <div class="mini-upload-pill">
+                <div class="pill-info">
+                    <strong>1. SMGOI013 (.xlsx)</strong>
+                    <span id="headerStatusSmg">✓ Carregado</span>
+                </div>
+                <button type="button" class="btn-change-file" onclick="document.getElementById('fileSmg').click()">Trocar</button>
+            </div>
+
+            <div class="mini-upload-pill">
+                <div class="pill-info">
+                    <strong>2. SASOI086 (.xlsx)</strong>
+                    <span id="headerStatusSas">✓ Carregado</span>
+                </div>
+                <button type="button" class="btn-change-file" onclick="document.getElementById('fileSas').click()">Trocar</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="upload-grid" id="uploadGrid">
+        <div class="upload-card" id="cardSmg">
+            <h3>1. Arquivo SMGOI013 (.xlsx)</h3>
+            <p>
+                <strong>Passo 1:</strong> Abra o save na opção 013 “SMGO1013-LISTA DE VALORES DE FILIAIS POR COMPRADOR-BIBLIA”<br>
+                <strong>Passo 2:</strong> Em Classificação escolha setor balanço desmarque a opção todos e coloque o número do setor nos dois campos e desmarque somente com estoque (para trazer também os itens sem estoque do setor).<br>
+                <strong>Passo 3:</strong> exporte em xlsx<br>
+                <strong>Passo 4:</strong> suba o arquivo no app
+            </p>
+            <div>
+                <input type="file" id="fileSmg" accept=".xlsx,.xls,.csv">
+                <div class="status-badge" id="statusSmg">Aguardando arquivo...</div>
+            </div>
+        </div>
+
+        <div class="upload-card" id="cardSas">
+            <h3>2. Arquivo SASOI086 (.xlsx)</h3>
+            <p>
+                <strong>Passo 1:</strong> Abra o save na 086 “SASO1086-ACOMPANHAMENTO VENDAS SEM ESTOQUE”.<br>
+                <strong>Passo 2:</strong> Coloque a data do último inventário até a data atual e aperte em buscar.<br>
+                <strong>Passo 3:</strong> Exporte o arquivo em xlsx e suba no app.
+            </p>
+            <div>
+                <input type="file" id="fileSas" accept=".xlsx,.xls,.csv">
+                <div class="status-badge" id="statusSas">Aguardando arquivo...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="filter-row">
+            <div class="filter-fields">
+                <div class="field-group">
+                    <label for="searchInput">Buscar Código ou Descrição</label>
+                    <input type="text" id="searchInput" placeholder="Ex: 85345, -902 ou AC. BOV..." disabled>
+                </div>
+
+                <div class="field-group">
+                    <label for="statusFilter">Filtrar por Status</label>
+                    <select id="statusFilter" disabled>
+                        <option value="all" selected>Todos os Status</option>
+                        <option value="found">Com Negativo</option>
+                        <option value="missing">Sem Negativo</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="saldoCondFilter">Condição QTD. SALDO</label>
+                    <select id="saldoCondFilter" disabled>
+                        <option value="all">Todos os Saldos</option>
+                        <option value="pos" selected>Positivo (&gt; 0)</option>
+                        <option value="neg">Negativo (&lt; 0)</option>
+                        <option value="zero">Zerado (= 0)</option>
+                        <option value="nonzero">Diferente de Zero (&ne; 0)</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="saldoMin">QTD. SALDO Mín.</label>
+                    <input type="number" id="saldoMin" step="any" placeholder="Mínimo" disabled>
+                </div>
+
+                <div class="field-group">
+                    <label for="saldoMax">QTD. SALDO Máx.</label>
+                    <input type="number" id="saldoMax" step="any" placeholder="Máximo" disabled>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-secondary" id="btnClearFilters" disabled>Limpar Filtros</button>
+                <button class="btn-danger" id="btnExport" disabled>Exportar em pdf</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary" id="summaryBar" style="display: none;">
+        <div class="stat-box">
+            <span>Total de Itens da bíblia (013)</span>
+            <strong id="statTotal">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Com Negativo</span>
+            <strong id="statFound" style="color: var(--danger);">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Sem Negativo</span>
+            <strong id="statMissing" style="color: var(--muted);">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Exibindo na Tabela</span>
+            <strong id="statFiltered" style="color: var(--primary);">0</strong>
+        </div>
+        <div class="stat-box">
+            <span>Total QTD. SALDO (Exibido)</span>
+            <strong id="statTotalQtd">0</strong>
+        </div>
+        <div class="stat-box clickable active" id="boxComEstoque" title="Clique para ver itens do SMGOI013 com estoque e saldo > 0">
+            <span>Saldo com Estoque</span>
+            <strong id="statComEstoqueVlr">R$ 0,00</strong>
+        </div>
+        <div class="stat-box clickable" id="boxSemEstoque" title="Clique para ver itens do SMGOI013 sem estoque e saldo > 0">
+            <span>Saldo sem Estoque</span>
+            <strong id="statSemEstoqueVlr">R$ 0,00</strong>
+        </div>
+        <div class="stat-box">
+            <span>Total VLR. SALDO (Exibido)</span>
+            <strong id="statTotalVlr">R$ 0,00</strong>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th data-sort="codigoExibicao">Código ↕</th>
+                    <th data-sort="descricao">Descrição Mercadoria ↕</th>
+                    <th data-sort="embalagem">Embalagem ↕</th>
+                    <th class="num" data-sort="estoqueEmb1">Estoque Emb1 ↕</th>
+                    <th class="num" data-sort="estoqueEmb9">Estoque Emb9 ↕</th>
+                    <th class="num" data-sort="qtdSaldo">QTD. SALDO ↕</th>
+                    <th class="num" data-sort="vlrSaldo">VLR. SALDO ↕</th>
+                    <th data-sort="encontrado">Status ↕</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        Selecione os arquivos <strong>SMGOI013.xlsx</strong> e <strong>SASOI086.xlsx</strong> acima para visualizar os dados.
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot id="tableFoot" style="display: none;">
+                <tr>
+                    <td colspan="5">TOTAL DO SALDO (ITENS EXIBIDOS)</td>
+                    <td class="num" id="footTotalQtd">0</td>
+                    <td class="num" id="footTotalVlr">R$ 0,00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+    let smgData = [];
+    let sasMap = new Map();
+    let smgLoaded = false;
+    let sasLoaded = false;
+    let mergedData = [];
+    let currentFilteredData = [];
+    let currentStockMode = 'com_estoque';
+    let sortState = { key: 'vlrSaldo', asc: false };
+
+    const fileSmgInput = document.getElementById('fileSmg');
+    const fileSasInput = document.getElementById('fileSas');
+    const searchInput = document.getElementById('searchInput');
+    const boxComEstoque = document.getElementById('boxComEstoque');
+    const boxSemEstoque = document.getElementById('boxSemEstoque');
+    const statusFilter = document.getElementById('statusFilter');
+    const saldoCondFilter = document.getElementById('saldoCondFilter');
+    const saldoMinInput = document.getElementById('saldoMin');
+    const saldoMaxInput = document.getElementById('saldoMax');
+    const btnClearFilters = document.getElementById('btnClearFilters');
+    const btnExport = document.getElementById('btnExport');
+    const tableBody = document.getElementById('tableBody');
+    const tableFoot = document.getElementById('tableFoot');
+
+    function checkDockUploadsToHeader() {
+        if (smgLoaded && sasLoaded) {
+            document.getElementById('mainHeader').classList.add('uploads-docked');
+            document.getElementById('uploadGrid').style.display = 'none';
+        }
+    }
+
+    function setStockMode(mode) {
+        currentStockMode = mode;
+        if (mode === 'sem_estoque') {
+            boxSemEstoque.classList.add('active');
+            boxComEstoque.classList.remove('active');
+            saldoCondFilter.value = 'pos';
+        } else {
+            boxComEstoque.classList.add('active');
+            boxSemEstoque.classList.remove('active');
+        }
+        renderTable();
+    }
+
+    boxComEstoque.addEventListener('click', () => setStockMode('com_estoque'));
+    boxSemEstoque.addEventListener('click', () => setStockMode('sem_estoque'));
+
+    function normalizeCode(raw) {
+        if (raw === null || raw === undefined) return '';
+        let str = String(raw).trim();
+        if (str.includes('-')) {
+            str = str.split('-')[0].trim();
+        }
+        if (str.endsWith('.0')) {
+            str = str.slice(0, -2);
+        }
+        const num = parseInt(str, 10);
+        return isNaN(num) ? str : String(num);
+    }
+
+    function formatCodeRule(codigoOriginal) {
+        const str = String(codigoOriginal).trim();
+        if (!str.includes('-')) return str;
+
+        const [prefixPart, suffixPart] = str.split('-');
+        const prefix = prefixPart.trim().padStart(8, '0');
+        const suffix = suffixPart.trim();
+
+        if (suffix.length === 3 && suffix.startsWith('1')) {
+            const dv = parseInt(suffix.slice(1), 10);
+            if (!isNaN(dv) && dv >= 12) {
+                const newDv = dv - 12;
+                return `${prefix}-9${String(newDv).padStart(2, '0')}`;
+            }
+        }
+
+        return `${prefix}-${suffix}`;
+    }
+
+    function formatNumber(val) {
+        if (val === null || val === undefined || val === '') return '-';
+        const num = Number(val);
+        if (isNaN(num)) return val;
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+    }
+
+    function formatCurrency(val) {
+        if (val === null || val === undefined || val === '') return '-';
+        const num = Number(val);
+        if (isNaN(num)) return val;
+        return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function readExcelFile(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+            callback(json);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function getColValue(row, possibleNames) {
+        const keys = Object.keys(row);
+        for (const name of possibleNames) {
+            const target = name.toLowerCase().trim();
+            const foundKey = keys.find(k => k.toLowerCase().trim() === target);
+            if (foundKey !== undefined) return row[foundKey];
+        }
+        return '';
+    }
+
+    fileSmgInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        readExcelFile(file, (rows) => {
+            smgData = rows.filter(r => getColValue(r, ['Código', 'Codigo']) !== '').map(row => {
+                const codigoOriginal = String(getColValue(row, ['Código', 'Codigo'])).trim();
+                const emb1 = Number(getColValue(row, ['Estoque Emb1'])) || 0;
+                const emb9 = Number(getColValue(row, ['Estoque Emb9'])) || 0;
+                return {
+                    codigoOriginal: codigoOriginal,
+                    codigoExibicao: formatCodeRule(codigoOriginal),
+                    codigoBase: normalizeCode(codigoOriginal),
+                    descricao: String(getColValue(row, ['Descrição Mercadoria', 'Descricao Mercadoria', 'Descrição'])).replace(/\s+/g, ' ').trim(),
+                    embalagem: String(getColValue(row, ['Embalagem'])).replace(/\s+/g, ' ').trim(),
+                    estoqueEmb1: emb1,
+                    estoqueEmb9: emb9,
+                    temEstoque: (emb1 > 0 || emb9 > 0)
+                };
+            });
+
+            smgLoaded = true;
+            const msg = `✓ ${smgData.length} produtos`;
+            document.getElementById('cardSmg').classList.add('loaded');
+            document.getElementById('statusSmg').textContent = `✓ ${smgData.length} produtos carregados.`;
+            document.getElementById('headerStatusSmg').textContent = msg;
+
+            checkDockUploadsToHeader();
+            processMerge();
+        });
+    });
+
+    fileSasInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        readExcelFile(file, (rows) => {
+            sasMap.clear();
+            rows.forEach(row => {
+                const rawCode = getColValue(row, ['MERCADORIA', 'Código', 'Codigo']);
+                const baseCode = normalizeCode(rawCode);
+                if (baseCode) {
+                    const qtdRaw = getColValue(row, ['QTD. SALDO', 'QTD SALDO']);
+                    const vlrRaw = getColValue(row, ['VLR. SALDO', 'VLR SALDO']);
+                    const qtdVal = qtdRaw === '' ? 0 : Number(qtdRaw);
+                    const vlrVal = vlrRaw === '' ? 0 : Number(vlrRaw);
+
+                    if (sasMap.has(baseCode)) {
+                        const existing = sasMap.get(baseCode);
+                        sasMap.set(baseCode, {
+                            qtd: existing.qtd + qtdVal,
+                            vlr: existing.vlr + vlrVal
+                        });
+                    } else {
+                        sasMap.set(baseCode, {
+                            qtd: qtdVal,
+                            vlr: vlrVal
+                        });
+                    }
+                }
+            });
+
+            sasLoaded = true;
+            const msg = `✓ ${sasMap.size} mercadorias`;
+            document.getElementById('cardSas').classList.add('loaded');
+            document.getElementById('statusSas').textContent = `✓ ${sasMap.size} mercadorias indexadas.`;
+            document.getElementById('headerStatusSas').textContent = msg;
+
+            checkDockUploadsToHeader();
+            processMerge();
+        });
+    });
+
+    function processMerge() {
+        if (smgData.length === 0) return;
+
+        let foundCount = 0;
+        let missingCount = 0;
+        let totalComEstoquePos = 0;
+        let totalSemEstoquePos = 0;
+
+        mergedData = smgData.map(item => {
+            const hasMatch = sasMap.has(item.codigoBase);
+            const matchObj = hasMatch ? sasMap.get(item.codigoBase) : null;
+            if (hasMatch) {
+                foundCount++;
+                if (matchObj.qtd > 0) {
+                    if (item.temEstoque) {
+                        totalComEstoquePos += Number(matchObj.vlr) || 0;
+                    } else {
+                        totalSemEstoquePos += Number(matchObj.vlr) || 0;
+                    }
+                }
+            } else {
+                missingCount++;
+            }
+
+            return {
+                ...item,
+                encontrado: hasMatch,
+                qtdSaldo: hasMatch ? matchObj.qtd : null,
+                vlrSaldo: hasMatch ? matchObj.vlr : null
+            };
+        });
+
+        document.getElementById('summaryBar').style.display = 'flex';
+        document.getElementById('statTotal').textContent = mergedData.length;
+        document.getElementById('statFound').textContent = foundCount;
+        document.getElementById('statMissing').textContent = missingCount;
+
+        const statComEstEl = document.getElementById('statComEstoqueVlr');
+        statComEstEl.textContent = formatCurrency(totalComEstoquePos);
+        statComEstEl.className = totalComEstoquePos > 0 ? 'pos' : '';
+
+        const statSemEstEl = document.getElementById('statSemEstoqueVlr');
+        statSemEstEl.textContent = formatCurrency(totalSemEstoquePos);
+        statSemEstEl.className = totalSemEstoquePos > 0 ? 'pos' : '';
+
+        searchInput.disabled = false;
+        statusFilter.disabled = false;
+        saldoCondFilter.disabled = false;
+        saldoMinInput.disabled = false;
+        saldoMaxInput.disabled = false;
+        btnClearFilters.disabled = false;
+        btnExport.disabled = false;
+
+        saldoCondFilter.value = 'pos';
+        sortState = { key: 'vlrSaldo', asc: false };
+        setStockMode(currentStockMode);
+    }
+
+    function renderTable() {
+        const term = searchInput.value.toLowerCase().trim();
+        const statusMode = statusFilter.value;
+        const saldoMode = saldoCondFilter.value;
+        const minVal = saldoMinInput.value !== '' ? Number(saldoMinInput.value) : null;
+        const maxVal = saldoMaxInput.value !== '' ? Number(saldoMaxInput.value) : null;
+
+        let filtered = mergedData.filter(item => {
+            if (currentStockMode === 'com_estoque' && !item.temEstoque) return false;
+            if (currentStockMode === 'sem_estoque' && item.temEstoque) return false;
+
+            if (statusMode === 'found' && !item.encontrado) return false;
+            if (statusMode === 'missing' && item.encontrado) return false;
+
+            if (saldoMode !== 'all') {
+                if (!item.encontrado) return false;
+                if (saldoMode === 'pos' && !(item.qtdSaldo > 0)) return false;
+                if (saldoMode === 'neg' && !(item.qtdSaldo < 0)) return false;
+                if (saldoMode === 'zero' && !(item.qtdSaldo === 0)) return false;
+                if (saldoMode === 'nonzero' && !(item.qtdSaldo !== 0)) return false;
+            }
+
+            if (minVal !== null || maxVal !== null) {
+                if (!item.encontrado) return false;
+                if (minVal !== null && item.qtdSaldo < minVal) return false;
+                if (maxVal !== null && item.qtdSaldo > maxVal) return false;
+            }
+
+            if (term) {
+                return item.codigoExibicao.toLowerCase().includes(term) ||
+                       item.codigoBase.includes(term) ||
+                       item.descricao.toLowerCase().includes(term);
+            }
+
+            return true;
+        });
+
+        if (sortState.key) {
+            filtered.sort((a, b) => {
+                let valA = a[sortState.key];
+                let valB = b[sortState.key];
+
+                if (sortState.key === 'qtdSaldo' || sortState.key === 'vlrSaldo') {
+                    if (valA === null && valB === null) return 0;
+                    if (valA === null) return 1;
+                    if (valB === null) return -1;
+                }
+
+                if (typeof valA === 'string') {
+                    return sortState.asc
+                        ? valA.localeCompare(valB, 'pt-BR')
+                        : valB.localeCompare(valA, 'pt-BR');
+                }
+                return sortState.asc ? (valA - valB) : (valB - valA);
+            });
+        }
+
+        currentFilteredData = filtered;
+
+        let sumQtd = 0;
+        let sumVlr = 0;
+        filtered.forEach(item => {
+            if (item.encontrado) {
+                sumQtd += Number(item.qtdSaldo) || 0;
+                sumVlr += Number(item.vlrSaldo) || 0;
+            }
+        });
+
+        document.getElementById('statFiltered').textContent = filtered.length;
+
+        const statQtdEl = document.getElementById('statTotalQtd');
+        statQtdEl.textContent = formatNumber(sumQtd);
+        statQtdEl.className = sumQtd < 0 ? 'neg' : (sumQtd > 0 ? 'pos' : '');
+
+        const statVlrEl = document.getElementById('statTotalVlr');
+        statVlrEl.textContent = formatCurrency(sumVlr);
+        statVlrEl.className = sumVlr < 0 ? 'neg' : (sumVlr > 0 ? 'pos' : '');
+
+        if (filtered.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="empty-state">Nenhum item corresponde aos filtros aplicados.</td></tr>`;
+            tableFoot.style.display = 'none';
+            return;
+        }
+
+        tableBody.innerHTML = filtered.map(item => {
+            let qtdClass = '';
+            let vlrClass = '';
+            if (item.encontrado) {
+                qtdClass = item.qtdSaldo < 0 ? 'neg' : (item.qtdSaldo > 0 ? 'pos' : 'zero');
+                vlrClass = item.vlrSaldo < 0 ? 'neg' : (item.vlrSaldo > 0 ? 'pos' : 'zero');
+            }
+
+            return `
+                <tr>
+                    <td class="code-col">${item.codigoExibicao}</td>
+                    <td>${item.descricao}</td>
+                    <td>${item.embalagem}</td>
+                    <td class="num">${formatNumber(item.estoqueEmb1)}</td>
+                    <td class="num">${formatNumber(item.estoqueEmb9)}</td>
+                    <td class="num ${qtdClass}">${item.encontrado ? formatNumber(item.qtdSaldo) : '-'}</td>
+                    <td class="num ${vlrClass}">${item.encontrado ? formatCurrency(item.vlrSaldo) : '-'}</td>
+                    <td>
+                        ${item.encontrado
+                            ? '<span class="badge-negativo">Com Negativo</span>'
+                            : '<span class="badge-sem-negativo">Sem Negativo</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tableFoot.style.display = 'table-footer-group';
+        const footQtdEl = document.getElementById('footTotalQtd');
+        footQtdEl.textContent = formatNumber(sumQtd);
+        footQtdEl.className = 'num ' + (sumQtd < 0 ? 'neg' : (sumQtd > 0 ? 'pos' : ''));
+
+        const footVlrEl = document.getElementById('footTotalVlr');
+        footVlrEl.textContent = formatCurrency(sumVlr);
+        footVlrEl.className = 'num ' + (sumVlr < 0 ? 'neg' : (sumVlr > 0 ? 'pos' : ''));
+    }
+
+    searchInput.addEventListener('input', renderTable);
+    statusFilter.addEventListener('change', renderTable);
+    saldoCondFilter.addEventListener('change', renderTable);
+    saldoMinInput.addEventListener('input', renderTable);
+    saldoMaxInput.addEventListener('input', renderTable);
+
+    btnClearFilters.addEventListener('click', () => {
+        searchInput.value = '';
+        statusFilter.value = 'all';
+        saldoCondFilter.value = 'all';
+        saldoMinInput.value = '';
+        saldoMaxInput.value = '';
+        sortState = { key: 'vlrSaldo', asc: false };
+        setStockMode('com_estoque');
+    });
+
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            if (mergedData.length === 0) return;
+            const key = th.getAttribute('data-sort');
+            if (sortState.key === key) {
+                sortState.asc = !sortState.asc;
+            } else {
+                sortState.key = key;
+                sortState.asc = true;
+            }
+            renderTable();
+        });
+    });
+
+    btnExport.addEventListener('click', () => {
+        if (currentFilteredData.length === 0) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        // Cabeçalho do PDF
+        doc.setFontSize(15);
+        doc.setTextColor(30, 64, 175);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DASHBOARD NEGATIVO', 10, 13);
+
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        doc.setFont('helvetica', 'bold');
+        const dataHora = new Date().toLocaleString('pt-BR');
+        const modoTexto = currentStockMode === 'sem_estoque' ? 'SALDO SEM ESTOQUE' : 'SALDO COM ESTOQUE';
+        doc.text(`ACERTE OS NEGATIVOS ANTES DO INVENTARIO  |  ${modoTexto}  |  Gerado em: ${dataHora}  |  Itens exibidos: ${currentFilteredData.length}`, 10, 18.5);
+
+        let totalQtd = 0;
+        let totalVlr = 0;
+
+        const bodyRows = currentFilteredData.map(item => {
+            if (item.encontrado) {
+                totalQtd += Number(item.qtdSaldo) || 0;
+                totalVlr += Number(item.vlrSaldo) || 0;
+            }
+            return [
+                item.codigoExibicao,
+                item.descricao,
+                item.embalagem,
+                formatNumber(item.estoqueEmb1),
+                formatNumber(item.estoqueEmb9),
+                item.encontrado ? formatNumber(item.qtdSaldo) : '-',
+                item.encontrado ? formatCurrency(item.vlrSaldo) : '-',
+                item.encontrado ? 'Com Negativo' : 'Sem Negativo'
+            ];
+        });
+
+        const totalPagesExp = '{total_pages_count_string}';
+
+        doc.autoTable({
+            startY: 22,
+            margin: { left: 10, right: 10, bottom: 12 },
+            tableWidth: 277,
+            showFoot: 'lastPage',
+            head: [[
+                'Código',
+                'Descrição Mercadoria',
+                'Embalagem',
+                'Estoque Emb1',
+                'Estoque Emb9',
+                'QTD. SALDO',
+                'VLR. SALDO',
+                'Status'
+            ]],
+            body: bodyRows,
+            foot: [[
+                'TOTAL DO SALDO',
+                '',
+                '',
+                '',
+                '',
+                formatNumber(totalQtd),
+                formatCurrency(totalVlr),
+                ''
+            ]],
+            theme: 'grid',
+            styles: {
+                fontSize: 7.3,
+                cellPadding: 1.5,
+                textColor: [30, 41, 59],
+                valign: 'middle',
+                overflow: 'ellipsize'
+            },
+            headStyles: {
+                fillColor: [30, 64, 175],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'left'
+            },
+            footStyles: {
+                fillColor: [241, 245, 249],
+                textColor: [15, 23, 42],
+                fontStyle: 'bold'
+            },
+            columnStyles: {
+                0: { fontStyle: 'bold', textColor: [30, 64, 175], cellWidth: 24 },
+                1: { cellWidth: 88 },
+                2: { cellWidth: 37 },
+                3: { halign: 'right', cellWidth: 23 },
+                4: { halign: 'right', cellWidth: 23 },
+                5: { halign: 'right', cellWidth: 26 },
+                6: { halign: 'right', cellWidth: 30 },
+                7: { halign: 'center', cellWidth: 26 }
+            },
+            didParseCell: function(data) {
+                if (data.section === 'head') {
+                    if ([3, 4, 5, 6].includes(data.column.index)) {
+                        data.cell.styles.halign = 'right';
+                    }
+                    if (data.column.index === 7) {
+                        data.cell.styles.halign = 'center';
+                    }
+                }
+                if (data.section === 'body') {
+                    const rowItem = currentFilteredData[data.row.index];
+                    if (rowItem && rowItem.encontrado) {
+                        if (data.column.index === 5) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = rowItem.qtdSaldo < 0 ? [220, 38, 38] : [22, 163, 74];
+                        }
+                        if (data.column.index === 6) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = rowItem.vlrSaldo < 0 ? [220, 38, 38] : [22, 163, 74];
+                        }
+                        if (data.column.index === 7) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = [220, 38, 38];
+                        }
+                    } else if (rowItem && !rowItem.encontrado && data.column.index === 7) {
+                        data.cell.styles.textColor = [100, 116, 139];
+                    }
+                }
+                if (data.section === 'foot') {
+                    if (data.column.index === 5) {
+                        data.cell.styles.halign = 'right';
+                        if (totalQtd < 0) data.cell.styles.textColor = [220, 38, 38];
+                    }
+                    if (data.column.index === 6) {
+                        data.cell.styles.halign = 'right';
+                        if (totalVlr < 0) data.cell.styles.textColor = [220, 38, 38];
+                    }
+                }
+            },
+            didDrawPage: function(data) {
+                let str = 'Página ' + doc.internal.getNumberOfPages();
+                if (typeof doc.putTotalPages === 'function') {
+                    str = str + ' de ' + totalPagesExp;
+                }
+                doc.setFontSize(8);
+                doc.setTextColor(100, 116, 139);
+                doc.text(
+                    str,
+                    doc.internal.pageSize.getWidth() - 10,
+                    doc.internal.pageSize.getHeight() - 6,
+                    { align: 'right' }
+                );
+            }
+        });
+
+        if (typeof doc.putTotalPages === 'function') {
+            doc.putTotalPages(totalPagesExp);
+        }
+
+        doc.save('DASHBOARD_NEGATIVO.pdf');
+    });
+</script>
+
+</body>
+</html>
